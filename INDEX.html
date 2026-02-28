@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>EBI — Espaço Bíblico Infantil · Sistema de Pedidos</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --pink:#f72585;--violet:#7209b7;--blue:#4361ee;--cyan:#4cc9f0;
+  --green:#06d6a0;--yellow:#ffd60a;--red:#ef233c;
+  --bg:#0d1b2a;--s1:rgba(255,255,255,0.05);--s2:rgba(255,255,255,0.09);
+  --border:rgba(255,255,255,0.12);--text:#e9f5ff;--muted:rgba(255,255,255,0.5);
+}
+body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* BG BLOBS */
+.blobs{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.15;animation:drift 14s ease-in-out infinite alternate}
+.b1{width:500px;height:500px;background:var(--pink);top:-150px;left:-100px}
+.b2{width:400px;height:400px;background:var(--blue);bottom:-100px;right:-80px;animation-delay:-5s}
+.b3{width:300px;height:300px;background:var(--cyan);top:40%;left:50%;animation-delay:-9s}
+@keyframes drift{to{transform:translate(40px,30px) scale(1.1)}}
+
+#app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column}
+
+/* HEADER */
+header{background:rgba(13,27,42,.85);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);
+  padding:0 20px;height:64px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-icon{width:42px;height:42px;background:linear-gradient(135deg,var(--pink),var(--violet));
+  border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;
+  box-shadow:0 4px 20px rgba(247,37,133,.35);animation:bounce 2.5s ease-in-out infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.logo-title{font-family:'Fredoka One',cursive;font-size:20px;background:linear-gradient(90deg,var(--pink),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo-sub{font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+
+/* NAV */
+nav{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+.tab-btn{padding:8px 14px;border-radius:8px;border:none;cursor:pointer;font-size:12.5px;font-weight:700;
+  font-family:'Nunito',sans-serif;transition:all .2s;white-space:nowrap;color:var(--muted);background:transparent}
+.tab-btn:hover{background:var(--s2);color:var(--text)}
+.tab-btn.active{background:linear-gradient(135deg,var(--pink),var(--violet));color:#fff;box-shadow:0 4px 18px rgba(247,37,133,.35)}
+
+/* MAIN */
+main{flex:1;padding:24px 20px;max-width:1380px;margin:0 auto;width:100%}
+
+/* CARD */
+.card{background:var(--s1);border:1px solid var(--border);border-radius:18px;padding:24px;margin-bottom:24px;backdrop-filter:blur(10px)}
+.card-title{font-family:'Fredoka One',cursive;font-size:22px;margin-bottom:20px;
+  background:linear-gradient(90deg,var(--pink),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+
+/* FORMS */
+label.lbl{display:block;font-size:11px;font-weight:800;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+input,select,textarea{width:100%;padding:10px 14px;background:rgba(255,255,255,.07);
+  border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;
+  font-family:'Nunito',sans-serif;outline:none;transition:border-color .2s}
+input:focus,select:focus{border-color:var(--pink)}
+select option{background:#1a2a3e;color:var(--text)}
+.fg{display:flex;flex-direction:column}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:8px;border:none;
+  cursor:pointer;font-weight:700;font-size:14px;font-family:'Nunito',sans-serif;transition:all .2s}
+.btn-primary{background:linear-gradient(135deg,var(--pink),var(--violet));color:#fff;box-shadow:0 4px 18px rgba(247,37,133,.3)}
+.btn-primary:hover{opacity:.9;transform:translateY(-1px)}
+.btn-sec{background:var(--s2);color:var(--text);border:1px solid var(--border)}
+.btn-sec:hover{background:rgba(255,255,255,.15)}
+.btn-green{background:rgba(6,214,160,.2);color:var(--green);border:1px solid rgba(6,214,160,.3);padding:6px 12px;font-size:12px}
+.btn-red{background:rgba(239,35,60,.2);color:var(--red);border:1px solid rgba(239,35,60,.3);padding:6px 12px;font-size:12px}
+.btn-blue{background:rgba(67,97,238,.2);color:var(--cyan);border:1px solid rgba(67,97,238,.3);padding:6px 12px;font-size:12px}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-grp{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 12px;background:rgba(255,255,255,.07);color:var(--muted);
+  font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:800;border-bottom:1px solid var(--border)}
+td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.05);color:var(--text)}
+tr:hover td{background:rgba(255,255,255,.03)}
+
+/* BADGES */
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:800}
+.bg-green{background:rgba(6,214,160,.2);color:var(--green);border:1px solid rgba(6,214,160,.3)}
+.bg-red{background:rgba(239,35,60,.2);color:var(--red);border:1px solid rgba(239,35,60,.3)}
+.bg-yellow{background:rgba(255,214,10,.2);color:var(--yellow);border:1px solid rgba(255,214,10,.3)}
+.mono{font-family:monospace;color:var(--pink);font-size:12px}
+
+/* AUTOCOMPLETE */
+.ac-wrap{position:relative}
+.ac-list{position:absolute;top:100%;left:0;right:0;background:#1a2a3e;border:1px solid var(--pink);
+  border-radius:0 0 8px 8px;max-height:220px;overflow-y:auto;z-index:200;display:none}
+.ac-list.open{display:block}
+.ac-item{padding:10px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid rgba(255,255,255,.06)}
+.ac-item:hover,.ac-item.selected{background:rgba(247,37,133,.2);color:var(--pink)}
+.ac-item .ac-cod{font-size:11px;color:var(--muted);font-family:monospace}
+
+/* ORDER ROW */
+.order-row{background:var(--s2);border:1px solid var(--border);border-radius:12px;
+  padding:14px;margin-bottom:10px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+
+/* SUMMARY */
+.summary-box{background:rgba(67,97,238,.1);border:1px solid rgba(67,97,238,.25);
+  border-radius:14px;padding:20px;margin-top:20px}
+.sum-title{font-family:'Fredoka One',cursive;font-size:18px;color:var(--cyan);margin-bottom:14px}
+.sum-item{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;
+  padding:10px 14px;margin-bottom:8px}
+.sum-item-info{display:flex;align-items:center;gap:10px;flex:1;min-width:180px}
+.sum-qty{background:rgba(247,37,133,.2);color:var(--pink);border:1px solid rgba(247,37,133,.3);
+  border-radius:6px;padding:3px 10px;font-weight:900;font-size:14px;white-space:nowrap}
+.sum-desc{font-size:14px;font-weight:600}
+.sum-cod{font-size:11px;color:var(--muted);font-family:monospace}
+.sum-actions{display:flex;gap:6px}
+
+/* MODAL */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);
+  z-index:500;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal-box{background:linear-gradient(135deg,#1a2a3e,#0d1b2a);border:1px solid var(--border);
+  border-radius:20px;padding:32px;width:100%;max-width:440px;text-align:center;
+  box-shadow:0 30px 80px rgba(0,0,0,.6);animation:popIn .25s ease}
+@keyframes popIn{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-icon{font-size:52px;margin-bottom:12px}
+.modal-title{font-family:'Fredoka One',cursive;font-size:22px;margin-bottom:8px}
+.modal-sub{font-size:14px;color:var(--muted);margin-bottom:24px;line-height:1.6}
+.modal-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+
+/* BLESSING */
+.blessing{background:linear-gradient(135deg,rgba(6,214,160,.15),rgba(67,97,238,.15));
+  border:1px solid rgba(6,214,160,.3);border-radius:16px;padding:24px;text-align:center;animation:popIn .4s ease}
+.bless-text{font-family:'Fredoka One',cursive;font-size:26px;color:var(--green)}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;z-index:9999;color:#fff;padding:12px 22px;
+  border-radius:12px;font-weight:800;font-size:14px;box-shadow:0 8px 30px rgba(247,37,133,.4);
+  animation:slideUp .3s ease}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.stat-card{background:var(--s2);border-radius:12px;padding:16px;text-align:center;border:1px solid var(--border)}
+.stat-num{font-family:'Fredoka One',cursive;font-size:32px}
+.stat-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+
+/* CHURCH GRID */
+.church-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.church-card{background:var(--s2);border:1px solid var(--border);border-radius:12px;
+  padding:16px 18px;display:flex;justify-content:space-between;align-items:center;transition:all .2s}
+.church-card:hover{border-color:var(--pink);transform:translateY(-2px)}
+
+/* SEARCH ROW */
+.search-row{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.search-row input,.search-row select{max-width:300px;flex:1}
+
+/* FOOTER */
+footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
+  padding:20px 24px;text-align:center;color:var(--muted);font-size:13px;backdrop-filter:blur(10px)}
+.dev-brand{font-family:'Fredoka One',cursive;font-size:17px;
+  background:linear-gradient(90deg,var(--pink),var(--yellow),var(--cyan),var(--green));
+  background-size:300% 100%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  animation:gs 3s ease infinite}
+@keyframes gs{0%{background-position:0%}50%{background-position:100%}100%{background-position:0%}}
+.dev-star{font-size:14px;animation:tw 1.5s ease-in-out infinite alternate}
+@keyframes tw{from{opacity:.4;transform:scale(.9)}to{opacity:1;transform:scale(1.15)}}
+
+.hidden{display:none!important}
+
+@media(max-width:700px){
+  header{flex-wrap:wrap;height:auto;padding:10px 14px;gap:8px}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  nav{width:100%;justify-content:center}
+  main{padding:16px 12px}
+}
+</style>
+</head>
+<body>
+<div class="blobs"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+<div id="app">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">👧</div>
+      <div>
+        <div class="logo-title">EBI</div>
+        <div class="logo-sub">Espaço Bíblico Infantil</div>
+      </div>
+    </div>
+    <nav>
+      <button class="tab-btn active" onclick="showTab(0)">🛒 Pedidos</button>
+      <button class="tab-btn" onclick="showTab(1)">📦 Produtos</button>
+      <button class="tab-btn" onclick="showTab(2)">🏪 Distribuidora</button>
+      <button class="tab-btn" onclick="showTab(3)">📋 Resumo</button>
+      <button class="tab-btn" onclick="showTab(4)">🏛️ Cadastro</button>
+    </nav>
+  </header>
+
+  <main>
+
+    <!-- ══ TAB 0: PEDIDOS ══ -->
+    <div id="tab0">
+      <div class="card">
+        <div class="card-title">🛒 Novo Pedido</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+          <div class="fg">
+            <label class="lbl">Casa de Oração *</label>
+            <select id="oCasa"><option value="">— Selecione —</option></select>
+          </div>
+          <div class="fg">
+            <label class="lbl">Responsável *</label>
+            <input type="text" id="oResp" placeholder="Nome completo" oninput="updateSummary()"/>
+          </div>
+        </div>
+
+        <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Itens do Pedido</div>
+        <div id="orderItemsContainer"></div>
+        <div class="btn-grp">
+          <button class="btn btn-sec" onclick="addOrderRow()">+ Adicionar Item</button>
+        </div>
+
+        <!-- RESUMO AUTOMÁTICO -->
+        <div id="autoSummary" class="summary-box hidden">
+          <div class="sum-title">📋 Resumo do Pedido</div>
+          <div style="margin-bottom:12px">
+            <span style="color:var(--muted);font-size:13px">Igreja:</span> <strong id="sumCasa">—</strong>
+            &nbsp;&nbsp;
+            <span style="color:var(--muted);font-size:13px">Responsável:</span> <strong id="sumResp">—</strong>
+          </div>
+          <div id="sumItemsList"></div>
+          <div class="btn-grp" style="margin-top:14px">
+            <button class="btn btn-primary" onclick="showConfirmModal()">📤 Enviar Pedido</button>
+          </div>
+        </div>
+
+        <div id="blessingMsg" class="blessing hidden" style="margin-top:20px">
+          <div style="font-size:48px">🙌</div>
+          <div class="bless-text">Deus Abençoe!</div>
+          <div style="color:var(--muted);font-size:14px;margin-top:6px">Pedido registrado com sucesso!</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB 1: PRODUTOS ══ -->
+    <div id="tab1" class="hidden">
+      <div class="card">
+        <div class="card-title">📦 Produtos</div>
+        <div style="display:grid;grid-template-columns:160px 1fr 110px auto;gap:12px;margin-bottom:20px;align-items:flex-end;flex-wrap:wrap">
+          <div class="fg"><label class="lbl">Código</label><input type="text" id="pCod" placeholder="ESPINF0001"/></div>
+          <div class="fg"><label class="lbl">Descrição</label><input type="text" id="pDesc" placeholder="Nome do produto"/></div>
+          <div class="fg"><label class="lbl">Unidade</label>
+            <select id="pUn"><option>UN</option><option>CX</option><option>PC</option><option>KG</option><option>L</option><option>METROS</option></select>
+          </div>
+          <div><button class="btn btn-primary" onclick="addProduct()">+ Adicionar</button></div>
+        </div>
+        <div class="search-row">
+          <input type="text" id="prodSearch" placeholder="🔍 Buscar código ou descrição..." oninput="renderProducts()"/>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Código</th><th>Descrição</th><th>Unidade</th><th></th></tr></thead>
+            <tbody id="prodTbody"></tbody>
+          </table>
+        </div>
+        <div id="prodCount" style="margin-top:10px;font-size:13px;color:var(--muted)"></div>
+      </div>
+    </div>
+
+    <!-- ══ TAB 2: DISTRIBUIDORA ══ -->
+    <div id="tab2" class="hidden">
+      <div class="card">
+        <div class="card-title">🏪 Distribuidora Central</div>
+        <details style="margin-bottom:20px">
+          <summary style="cursor:pointer;color:var(--pink);font-weight:800;margin-bottom:12px">+ Cadastrar Novo Item</summary>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:14px">
+            <div class="fg"><label class="lbl">Código</label><input type="text" id="dCod"/></div>
+            <div class="fg"><label class="lbl">Descrição</label><input type="text" id="dDesc"/></div>
+            <div class="fg"><label class="lbl">Unidade</label>
+              <select id="dUn"><option>UN</option><option>CX</option><option>PC</option><option>KG</option><option>L</option><option>METROS</option></select>
+            </div>
+            <div class="fg"><label class="lbl">Categoria</label><input type="text" id="dCat" value="DESCARTÁVEIS"/></div>
+            <div class="fg"><label class="lbl">Estoque Inicial</label><input type="number" id="dEst" value="0"/></div>
+            <div class="fg"><label class="lbl">Entrada</label><input type="number" id="dEnt" value="0"/></div>
+          </div>
+          <button class="btn btn-primary" style="margin-top:12px" onclick="addDistItem()">+ Adicionar Item</button>
+        </details>
+        <div class="search-row">
+          <input type="text" id="distSearch" placeholder="🔍 Buscar item..." oninput="renderDist()"/>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Código</th><th>Descrição</th><th>Un</th><th>Est. Inicial</th><th>Entrada</th><th>Pedidos</th><th>Estoque Atual</th></tr></thead>
+            <tbody id="distTbody"></tbody>
+          </table>
+        </div>
+        <div id="distCount" style="margin-top:10px;font-size:13px;color:var(--muted)"></div>
+      </div>
+    </div>
+
+    <!-- ══ TAB 3: RESUMO ══ -->
+    <div id="tab3" class="hidden">
+      <div id="resumoLogin" class="card" style="max-width:380px;margin:0 auto">
+        <div class="card-title">🔒 Área Restrita</div>
+        <p style="color:var(--muted);margin-bottom:20px;font-size:14px">Esta área requer senha de responsável.</p>
+        <div class="fg" style="margin-bottom:12px">
+          <label class="lbl">Senha</label>
+          <input type="password" id="pwdInput" placeholder="Digite a senha..." onkeydown="if(event.key==='Enter')doLogin()"/>
+        </div>
+        <div id="pwdErr" class="hidden" style="color:var(--red);font-size:13px;margin-bottom:12px">❌ Senha incorreta</div>
+        <button class="btn btn-primary" onclick="doLogin()">Entrar</button>
+      </div>
+      <div id="resumoContent" class="hidden">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+            <div class="card-title" style="margin-bottom:0">📋 Resumo dos Pedidos</div>
+            <button class="btn btn-primary btn-sm" onclick="exportPDF()">📄 Exportar PDF</button>
+          </div>
+          <div class="stats-grid" id="statsGrid"></div>
+          <div class="search-row">
+            <select id="filterCasa" onchange="renderOrders()"><option value="">Todas as casas</option></select>
+            <select id="filterStatus" onchange="renderOrders()">
+              <option value="">Todos os status</option>
+              <option value="pendente">Pendente</option>
+              <option value="entregue">Entregue</option>
+              <option value="cancelado">Cancelado</option>
+            </select>
+            <input type="text" id="orderSearch" placeholder="🔍 Buscar..." oninput="renderOrders()"/>
+          </div>
+          <div id="ordersContainer"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB 4: CADASTRO ══ -->
+    <div id="tab4" class="hidden">
+      <div class="card">
+        <div class="card-title">🏛️ Casas de Oração</div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:12px;margin-bottom:20px;align-items:flex-end">
+          <div class="fg">
+            <label class="lbl">Nome da Casa de Oração</label>
+            <input type="text" id="churchInput" placeholder="Ex: BAIRRO JARDIM" onkeydown="if(event.key==='Enter')addChurch()"/>
+          </div>
+          <button class="btn btn-primary" onclick="addChurch()">👧 Cadastrar</button>
+        </div>
+        <div class="search-row">
+          <input type="text" id="churchSearch" placeholder="🔍 Buscar..." oninput="renderChurches()" style="max-width:300px"/>
+        </div>
+        <div id="churchGrid" class="church-grid"></div>
+        <div id="churchCount" style="margin-top:14px;font-size:13px;color:var(--muted)"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer>
+    <div>Sistema de Pedidos, Estoque e Almoxarifado — Espaço Bíblico Infantil · Caieiras/SP</div>
+    <div style="margin-top:6px;display:flex;align-items:center;justify-content:center;gap:8px">
+      <span>Desenvolvido por</span>
+      <span class="dev-star">✨</span>
+      <span class="dev-brand">Leandro Machado</span>
+      <span class="dev-star">✨</span>
+    </div>
+  </footer>
+</div>
+
+<!-- MODAL CONFIRMAÇÃO -->
+<div id="confirmModal" class="modal-ov hidden">
+  <div class="modal-box">
+    <div class="modal-icon">🤔</div>
+    <div class="modal-title">Foi revisado o pedido?</div>
+    <div class="modal-sub">Verifique os itens e quantidades antes de confirmar.</div>
+    <div class="modal-btns">
+      <button class="btn btn-primary" onclick="confirmOrder(true)">✅ Sim, registrar!</button>
+      <button class="btn btn-sec" onclick="confirmOrder(false)">❌ Não, voltar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<!-- FIREBASE -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, updateDoc, getDocs }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyDkqq88UJjXgU6HTFU5KEj-gMHgbyEeQxs",
+  authDomain:"estoque-ebi.firebaseapp.com",
+  projectId:"estoque-ebi",
+  storageBucket:"estoque-ebi.firebasestorage.app",
+  messagingSenderId:"1060228147372",
+  appId:"1:1060228147372:web:eca4bfc47ca3f040145709"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ── STATE ──────────────────────────────────────────
+const ADMIN_PASSWORD = "amem";
+let churches = [], products = [], distItems = [], orders = [];
+// orderRows: [{id, descricao, codigo, quantidade}]
+let orderRows = [];
+
+// ── SEED DATA ──────────────────────────────────────
+const INIT_CHURCHES = ["JD. VITÓRIA","CRESCIUMA","SERPA","VERA TEREZA","LARANJEIRAS","VILA ROSINA","MORRO GRANDE","JARDIM MARCELINO"];
+const INIT_PRODUCTS = [
+  {codigo:"2150",descricao:"COLCHETES N5",unidade:"UN"},{codigo:"ESPINF0001",descricao:"APONTADOR COM DEPÓSITO",unidade:"UN"},
+  {codigo:"ESPINF0002",descricao:"BARBANTE CRU 100G 4/6 FIOS ROLO 101M",unidade:"UN"},{codigo:"ESPINF0003",descricao:"BRINQUEDO PARA MONTAR BALDE BLOCOS ESCOLARES 30 PCS",unidade:"UN"},
+  {codigo:"ESPINF0004",descricao:"BORRACHA BRANCA PCTE C/3",unidade:"UN"},{codigo:"ESPINF0005",descricao:"COLA ESCOLAR MAXI COLA 90G",unidade:"UN"},
+  {codigo:"ESPINF0006",descricao:"COLA EM BASTAO LEOLEO 21G",unidade:"UN"},{codigo:"ESPINF0007",descricao:"COLA QUENTE REFIL GROSSA (1 BASTÃO)",unidade:"UN"},
+  {codigo:"ESPINF0008",descricao:"COLA DE ALTA RESISTENCIA BRANCA PVA EXTRA 500G",unidade:"UN"},{codigo:"ESPINF0009",descricao:"COLCHETE LATONADOS N.04 CX.C/ 72UNID",unidade:"UN"},
+  {codigo:"ESPINF0010",descricao:"CANETA ESFEROGRAFICA CRISTAL AZUL",unidade:"UN"},{codigo:"ESPINF0011",descricao:"CLIPE GALVANIZADO ACO 2/0 720 UNIDADES",unidade:"CX"},
+  {codigo:"ESPINF0012",descricao:"PINCEL MARCADOR PERMANENTE PONTA CHANFRADA PRETO - BRW",unidade:"UN"},{codigo:"ESPINF0013",descricao:"PERFURADOR DE PAPEL JOCAR PRETO 2 FUROS PEQ. P/12F",unidade:"UN"},
+  {codigo:"ESPINF0014",descricao:"GIZ DE CERA JUMBO 06 CORES MEU 1 GIZ DE CERA",unidade:"UN"},{codigo:"ESPINF0015",descricao:"GLITTER PVC KIT 6 CORES SORTIDAS POTES 3G C/6",unidade:"UN"},
+  {codigo:"ESPINF0016",descricao:"FITA PARA EMPACOTAMENTO DUREX GRANDE 48MMX45M",unidade:"UN"},{codigo:"ESPINF0017",descricao:"FITA CREPE 710 MASK CREPE 18MMX50M",unidade:"UN"},
+  {codigo:"ESPINF0018",descricao:"GRAMPO P/ GRAMPEADOR 26/6",unidade:"UN"},{codigo:"ESPINF0019",descricao:"PAPEL LAMINADO 45X59CM. LAMICOR OURO/AMARELO",unidade:"UN"},
+  {codigo:"ESPINF0020",descricao:"LANTEJOULA METALIZADA KIT 6 CORES SORT 6MM POTES C/6",unidade:"UN"},{codigo:"ESPINF0021",descricao:"LÁPIS DE COR 12 CORES",unidade:"UN"},
+  {codigo:"ESPINF0022",descricao:"PAPEL CARTOLINA DUPLA FACE COLOR SET 48X66 BRANCO",unidade:"UN"},{codigo:"ESPINF0023",descricao:"PAPEL CREPOM 48CMX2,00M.BRANCO",unidade:"UN"},
+  {codigo:"ESPINF0024",descricao:"MASSA PARA MODELAR SOFT C/12 COR.FOSCAS BS.AMIDO",unidade:"UN"},{codigo:"ESPINF0025",descricao:"PLACA EM E.V.A. (GLITTER) 60X40CM DOURADO 2MM",unidade:"UN"},
+  {codigo:"ESPINF0027",descricao:"PAPEL SULFITE A4 HP OFFICE 75G 500 FLS",unidade:"UN"},{codigo:"ESPINF0028",descricao:"PASTA ABA ELASTICA PLASTICA OFICIO CRISTAL SOFT",unidade:"PC"},
+  {codigo:"ESPINF0029",descricao:"PASTA CATALOGO OFICIO 50 ENV. FINOS PRETA",unidade:"PC"},{codigo:"ESPINF0030",descricao:"PALITO DE MADEIRA P/SORVETE PONTA REDONDA",unidade:"UN"},
+  {codigo:"ESPINF0031",descricao:"PINCEL ARTESANAL CHATO 815 N.20 AMARELO",unidade:"UN"},{codigo:"ESPINF0032",descricao:"REGUA DE POLIESTIRENO NEW LINE CRISTAL 30CM",unidade:"UN"},
+  {codigo:"ESPINF0033",descricao:"TINTA GUACHE 015ML 06 CORES",unidade:"UN"},{codigo:"ESPINF0035",descricao:"ENVELOPE PLÁSTICO A4 4 FUROS GROSSO 0,15 MM C/50",unidade:"UN"},
+  {codigo:"ESPINF0036",descricao:"PULSEIRA IDENTIFICACAO MED BRANCO C/100",unidade:"UN"},{codigo:"ESPINF0037",descricao:"REFIL DE TINTA EPSON 544 PRETA",unidade:"UN"},
+  {codigo:"ESPINF0039",descricao:"ESTILETE LARGO 18MM",unidade:"UN"},{codigo:"ESPINF0040",descricao:"PERCEVEJO 9,5MM PT 100",unidade:"PC"},
+  {codigo:"ESPINF0041",descricao:"FITA DUPLA FACE BANANINHA",unidade:"UN"},{codigo:"ESPINF0042",descricao:"PLACA EM EVA 60X40CM CINZA 1,6MM",unidade:"UN"},
+  {codigo:"ESPINF0043",descricao:"PLACA EM EVA 60X40CM AZUL CLARO 1,6MM",unidade:"UN"},{codigo:"ESPINF0044",descricao:"PAPEL CREPOM 48CMX2,00M.PRETO",unidade:"UN"},
+  {codigo:"ESPINF0047",descricao:"CANETINHA HIDROGRAFICA 12 CORES",unidade:"UN"},{codigo:"ESPINF0048",descricao:"PAPEL SULFITE A4 COLORIDO 75 G 4 CORES C/100",unidade:"UN"},
+  {codigo:"ESPINF0049",descricao:"ENVELOPE PLASTICO SEM FURO OFICIO MEDIO 0,10MM",unidade:"UN"},{codigo:"ESPINF0054",descricao:"TESOURA ESCOLAR SEM PONTA 13CM",unidade:"UN"},
+  {codigo:"ESPINF0055",descricao:"PRANCHETA A4 MDF CLIP MET 105 ACRIMET",unidade:"UN"},{codigo:"ESPINF0060",descricao:"FITA ADESIVA TRANSP DUREX FINO 19MMX50MM",unidade:"UN"},
+  {codigo:"ESPINF0061",descricao:"MASSA DE EVA 20 CORES SORTIDAS TOTAL 250G",unidade:"UN"},{codigo:"ESPINF0063",descricao:"LÁPIS PRETIO N2 C/6",unidade:"UN"},
+  {codigo:"ESPINF0064",descricao:"PULSEIRA IDENTIFICAÇÃO MED AMARELA",unidade:"UN"},{codigo:"ESPINF0065",descricao:"PULSEIRA IDENTIFICAÇÃO MED VERDE",unidade:"UN"},
+  {codigo:"ESPINF0066",descricao:"GRAMPEADOR METAL P/20FLS 26/6 14CM PRETO",unidade:"UN"},{codigo:"ESPINF0067",descricao:"COLA PARA ISOPOR ACRILEX ISOPOR E EVA 90 G",unidade:"UN"},
+  {codigo:"ESPINF0068",descricao:"PISTOLA COLA QUENTE",unidade:"UN"},{codigo:"ESPINF0069",descricao:"CANETA ESFEROGRAFICA VERMELHA",unidade:"UN"},
+  {codigo:"ESPINF0070",descricao:"GIZ DE CERA FINO C/6 24 G",unidade:"UN"},{codigo:"ESPINF0071",descricao:"PAPEL SULFITE 90G C/500FLS",unidade:"UN"},
+  {codigo:"ESPINF0072",descricao:"PAPEL FOTOGRAFICO A4 115GM PC C/50",unidade:"UN"},{codigo:"ESPINF0074",descricao:"PINCEL QUADRO BRANCO MARKING RECARREGAVEL PRETO",unidade:"UN"},
+  {codigo:"ESPINF0077",descricao:"BRINQUEDO PEDAGÓGICO MADEIRA ENCAIXE FORMAS E CORES TETRIS",unidade:"UN"},{codigo:"ESPINF0078",descricao:"FITA DUPLA FACE 12MM",unidade:"UN"},
+  {codigo:"ESPINF0080",descricao:"BLOCO PARA DESENHO",unidade:"UN"},{codigo:"ESPINF0081",descricao:"CANETA AZUL QUADRO BRANCO PILOT",unidade:"UN"},
+  {codigo:"ESPINF0082",descricao:"CANETA VERMELHA QUADRO BRANCO PILOT",unidade:"UN"},{codigo:"ESPINF0083",descricao:"ENVELOPE SACO NATURAL 240X340",unidade:"UN"},
+  {codigo:"ESPINF0084",descricao:"COLA QUENTE REFIL FINA",unidade:"UN"},{codigo:"ESPINF0086",descricao:"PINCEL ARTESANAL CHATO 815 N.08 AMARELO",unidade:"UN"},
+  {codigo:"ESPINF0087",descricao:"PINCEL ARTESANAL CHATO 815 N.10 AMARELO",unidade:"UN"},{codigo:"ESPINF0088",descricao:"ARGILA ESCOLAR BRANCA C/14PTS. C/1KILO CADA",unidade:"UN"},
+  {codigo:"ESPINF0089",descricao:"CAIXA ORGANIZADORA",unidade:"UN"},{codigo:"ESPINF0090",descricao:"COLA COM GLITTER ESTOJO COM 06 CORES 23 G ACRILEX",unidade:"UN"},
+  {codigo:"ESPINF0091",descricao:"GIZ DE CERA JUMBO 12 CORES - ACRILEX",unidade:"UN"},{codigo:"ESPINF0092",descricao:"LANTEJOULA ESPECIAL ESTRELINHAS POTES 2G - C/6",unidade:"PC"},
+  {codigo:"ESPINF0093",descricao:"CRACHA SEM PRESILHA",unidade:"UN"},{codigo:"ESPINF0094",descricao:"Contact Transparente 45 cm x 25 m Cristal 0,80",unidade:"UN"},
+  {codigo:"ESPINF0095",descricao:"Papel Paraná Papelao N.80 100x80cm. 640g.",unidade:"UN"},{codigo:"ESPINF0096",descricao:"Apagador para quadro branco c/Porta Marcador",unidade:"UN"}
+];
+const INIT_DIST = [
+  {id:"d0",codigo:"ESPINF0001",descricao:"APONTADOR COM DEPÓSITO",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:4,entrada:22,pedidos:17},
+  {id:"d1",codigo:"ESPINF0002",descricao:"BARBANTE CRU 100G 4/6 FIOS ROLO 101M",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:6,entrada:0,pedidos:4},
+  {id:"d2",codigo:"ESPINF0003",descricao:"BRINQUEDO PARA MONTAR BALDE BLOCOS ESCOLARES 30 PCS",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:0,entrada:0,pedidos:1},
+  {id:"d3",codigo:"ESPINF0004",descricao:"BORRACHA BRANCA",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:10,entrada:0,pedidos:10},
+  {id:"d4",codigo:"ESPINF0005",descricao:"COLA ESCOLAR 90G",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:11,entrada:0,pedidos:10},
+  {id:"d5",codigo:"ESPINF0006",descricao:"COLA EM BASTAO 19G",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:6,entrada:12,pedidos:10},
+  {id:"d6",codigo:"ESPINF0007",descricao:"COLA QUENTE REFIL GROSSA (1 BASTÃO)",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:20,entrada:0,pedidos:0},
+  {id:"d7",codigo:"ESPINF0008",descricao:"COLA DE ALTA RESISTENCIA BRANCA PVA EXTRA 500G",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:9,entrada:0,pedidos:0},
+  {id:"d8",codigo:"ESPINF0009",descricao:"COLCHETE LATONADOS N.04 CX.C/ 72UNID",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:2,entrada:0,pedidos:0},
+  {id:"d9",codigo:"ESPINF0011",descricao:"CLIPE GALVANIZADO ACO 2/0 720 UNIDADES",unidade:"CX",categoria:"DESCARTÁVEIS",estoqueInicial:1,entrada:0,pedidos:1},
+  {id:"d10",codigo:"ESPINF0012",descricao:"PINCEL MARCADOR PERMANENTE PONTA CHANFRADA PRETO - BRW",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:6,entrada:0,pedidos:0},
+  {id:"d11",codigo:"ESPINF0014",descricao:"GIZ DE CERA JUMBO 06 CORES MEU 1 GIZ DE CERA",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:0,entrada:0,pedidos:0},
+  {id:"d12",codigo:"ESPINF0015",descricao:"GLITTER PVC KIT 6 CORES SORTIDAS POTES 3G C/6",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:1,entrada:0,pedidos:1},
+  {id:"d13",codigo:"ESPINF0016",descricao:"FITA PARA EMPACOTAMENTO DUREX GRANDE 48MMX45M",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:4,entrada:0,pedidos:3},
+  {id:"d14",codigo:"ESPINF0017",descricao:"FITA CREPE 710 MASK CREPE 18MMX50M",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:0,entrada:6,pedidos:3},
+  {id:"d15",codigo:"ESPINF0018",descricao:"GRAMPO P/ GRAMPEADOR 26/6",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:0,entrada:1,pedidos:1},
+  {id:"d16",codigo:"ESPINF0019",descricao:"PAPEL LAMINADO 45X59CM. LAMICOR OURO/AMARELO",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:31,entrada:0,pedidos:0},
+  {id:"d17",codigo:"ESPINF0020",descricao:"LANTEJOULA METALIZADA KIT 6 CORES SORT 6MM POTES C/6",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:8,entrada:0,pedidos:2},
+  {id:"d18",codigo:"ESPINF0021",descricao:"LÁPIS DE COR 12 CORES",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:30,entrada:0,pedidos:9},
+  {id:"d19",codigo:"ESPINF0022",descricao:"PAPEL CARTOLINA DUPLA FACE COLOR SET 48X66 BRANCO",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:28,entrada:0,pedidos:3},
+  {id:"d20",codigo:"ESPINF0023",descricao:"PAPEL CREPOM 48CMX2,00M.ROXO",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:7,entrada:0,pedidos:0},
+  {id:"d21",codigo:"ESPINF0024",descricao:"MASSA PARA MODELAR SOFT C/12 COR.FOSCAS BS.AMIDO",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:3,entrada:24,pedidos:26},
+  {id:"d22",codigo:"ESPINF0025",descricao:"PLACA EM EVA 60X40CM AZUL ESCURO 1,6MM",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:7,entrada:10,pedidos:6},
+  {id:"d23",codigo:"ESPINF0026",descricao:"PAPEL SULFITE A4 HP OFFICE 75G 500 FLS",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:10,entrada:3,pedidos:21},
+  {id:"d24",codigo:"ESPINF0027",descricao:"PAPEL A4 VERGE BRANCO CLASSICS C/50",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:0,entrada:7,pedidos:5},
+  {id:"d25",codigo:"ESPINF0028",descricao:"PASTA ABA ELASTICA PLASTICA OFICIO CRISTAL SOFT",unidade:"PC",categoria:"DESCARTÁVEIS",estoqueInicial:2,entrada:0,pedidos:2},
+  {id:"d26",codigo:"ESPINF0030",descricao:"PALITO DE MADEIRA P/SORVETE PONTA REDONDA",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:1,entrada:6,pedidos:8},
+  {id:"d27",codigo:"ESPINF0031",descricao:"PINCEL ARTESANAL CHATO 815 N.20 AMARELO",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:3,entrada:0,pedidos:3},
+  {id:"d28",codigo:"ESPINF0032",descricao:"REGUA DE POLIESTIRENO NEW LINE CRISTAL 30CM",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:3,entrada:10,pedidos:8},
+  {id:"d29",codigo:"ESPINF0033",descricao:"TINTA GUACHE 015ML 06 CORES",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:10,entrada:0,pedidos:2},
+  {id:"d30",codigo:"ESPINF0039",descricao:"ESTILETE LARGO 18MM",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:20,entrada:0,pedidos:2},
+  {id:"d31",codigo:"ESPINF0040",descricao:"PERCEVEJO 9,5MM PT 100",unidade:"PC",categoria:"DESCARTÁVEIS",estoqueInicial:9,entrada:0,pedidos:0},
+  {id:"d32",codigo:"ESPINF0042",descricao:"PLACA EM EVA 60X40CM CINZA 1,6MM",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:7,entrada:0,pedidos:4},
+  {id:"d33",codigo:"ESPINF0043",descricao:"PLACA EM EVA 60X40CM AZUL CLARO 1,6MM",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:6,entrada:0,pedidos:7},
+  {id:"d34",codigo:"ESPINF0044",descricao:"PAPEL CREPOM 48CMX2,00M.PRETO",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:9,entrada:0,pedidos:0},
+  {id:"d35",codigo:"ESPINF0047",descricao:"CANETINHA HIDROGRAFICA 12 CORES",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:13,entrada:0,pedidos:17},
+  {id:"d36",codigo:"ESPINF0048",descricao:"PAPEL SULFITE A4 COLORIDO 75 G 4 CORES C/100",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:2,entrada:0,pedidos:2},
+  {id:"d37",codigo:"ESPINF0054",descricao:"TESOURA ESCOLAR SEM PONTA 13CM",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:9,entrada:0,pedidos:9},
+  {id:"d38",codigo:"ESPINF0055",descricao:"PRANCHETA A4 MDF CLIP MET 105 ACRIMET",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:5,entrada:0,pedidos:2},
+  {id:"d39",codigo:"ESPINF0060",descricao:"FITA ADESIVA TRANSP DUREX FINO 19MMX50MM",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:6,entrada:0,pedidos:3},
+  {id:"d40",codigo:"ESPINF0061",descricao:"MASSA DE EVA 20 CORES SORTIDAS TOTAL 250G",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:0,entrada:0,pedidos:6},
+  {id:"d41",codigo:"ESPINF0063",descricao:"LÁPIS PRETIO N2 C/6",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:32,entrada:30,pedidos:20},
+  {id:"d42",codigo:"ESPINF0064",descricao:"PULSEIRA IDENTIFICAÇÃO MED AMARELA",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:0,entrada:2,pedidos:4},
+  {id:"d43",codigo:"ESPINF0066",descricao:"GRAMPEADOR METAL P/20FLS 26/6 14CM PRETO",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:0,entrada:1,pedidos:1},
+  {id:"d44",codigo:"ESPINF0067",descricao:"COLA PARA ISOPOR ACRILEX ISOPOR E EVA 90 G",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:1,entrada:0,pedidos:1},
+  {id:"d45",codigo:"ESPINF0068",descricao:"PISTOLA COLA QUENTE",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:0,entrada:1,pedidos:1},
+  {id:"d46",codigo:"ESPINF0069",descricao:"CANETA ESFEROGRAFICA VERMELHA",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:45,entrada:0,pedidos:0},
+  {id:"d47",codigo:"ESPINF0071",descricao:"PAPEL SULFITE 90G C/50FLS",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:3,entrada:0,pedidos:1},
+  {id:"d48",codigo:"ESPINF0074",descricao:"PINCEL QUADRO BRANCO MARKING RECARREGAVEL PRETO",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:7,entrada:0,pedidos:5},
+  {id:"d49",codigo:"ESPINF0081",descricao:"CANETA AZUL QUADRO BRANCO PILOT",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:11,entrada:0,pedidos:3},
+  {id:"d50",codigo:"ESPINF0082",descricao:"CANETA VERMELHA QUADRO BRANCO PILOT",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:3,entrada:0,pedidos:4},
+  {id:"d51",codigo:"ESPINF0083",descricao:"ENVELOPE SACO NATURAL 240X340",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:250,entrada:0,pedidos:0},
+  {id:"d52",codigo:"ESPINF0084",descricao:"COLA QUENTE REFIL FINA",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:28,entrada:0,pedidos:11},
+  {id:"d53",codigo:"ESPINF0088",descricao:"ARGILA ESCOLAR BRANCA C/14PTS. C/1KILO CADA",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:5,entrada:0,pedidos:0},
+  {id:"d54",codigo:"ESPINF0090",descricao:"COLA COM GLITTER ESTOJO COM 06 CORES 23 G ACRILEX",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:1,entrada:0,pedidos:4},
+  {id:"d55",codigo:"ESPINF0091",descricao:"GIZ DE CERA JUMBO 12 CORES - ACRILEX",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:0,entrada:12,pedidos:5},
+  {id:"d56",codigo:"ESPINF0092",descricao:"LANTEJOULA ESPECIAL ESTRELINHAS POTES 2G - C/6",unidade:"PC",categoria:"DESCARTÁVEIS",estoqueInicial:4,entrada:0,pedidos:2},
+  {id:"d57",codigo:"ESPINF0093",descricao:"CRACHA SEM PRESILHA",unidade:"UN",categoria:"DESCARTÁVEIS",estoqueInicial:30,entrada:0,pedidos:0}
+];
+
+// ── HELPERS ────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const genId = () => 'id_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
+const fmtDate = d => new Date(d).toLocaleDateString('pt-BR');
+
+function showToast(msg, color='linear-gradient(135deg,var(--pink),var(--violet))') {
+  const t=$('toast'); t.textContent=msg; t.style.background=color;
+  t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'),2800);
+}
+
+// ── FIREBASE INIT ──────────────────────────────────
+async function seedIfEmpty(colName, data) {
+  const snap = await getDocs(collection(db, colName));
+  if (snap.empty) for (const item of data) { const id=item.id||genId(); await setDoc(doc(db,colName,id),{...item,id}); }
+}
+
+async function initFirebase() {
+  await seedIfEmpty('churches', INIT_CHURCHES.map(c=>({id:genId(),nome:c})));
+  await seedIfEmpty('products', INIT_PRODUCTS.map(p=>({id:genId(),...p})));
+  await seedIfEmpty('distribuidora', INIT_DIST);
+
+  onSnapshot(collection(db,'churches'), snap=>{
+    churches = snap.docs.map(d=>({...d.data(),_fbId:d.id}));
+    renderChurches(); populateChurchSelect();
+  });
+  onSnapshot(collection(db,'products'), snap=>{
+    products = snap.docs.map(d=>({...d.data(),_fbId:d.id}));
+    renderProducts();
+  });
+  onSnapshot(collection(db,'distribuidora'), snap=>{
+    distItems = snap.docs.map(d=>({...d.data(),_fbId:d.id}));
+    renderDist(); refreshAllAutocompletes();
+  });
+  onSnapshot(collection(db,'pedidos'), snap=>{
+    orders = snap.docs.map(d=>({...d.data(),_fbId:d.id})).sort((a,b)=>new Date(b.data)-new Date(a.data));
+    renderOrders(); updateStats();
+  });
+}
+
+// ── TAB NAVIGATION ─────────────────────────────────
+window.showTab = function(idx) {
+  for(let i=0;i<5;i++){$('tab'+i).classList.add('hidden');document.querySelectorAll('.tab-btn')[i].classList.remove('active');}
+  $('tab'+idx).classList.remove('hidden');
+  document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+};
+
+// ══════════════════════════════════════════════════
+// TAB 0: PEDIDOS — com autocomplete e resumo automático
+// ══════════════════════════════════════════════════
+function populateChurchSelect() {
+  const s=$('oCasa'); const cur=s.value;
+  s.innerHTML='<option value="">— Selecione —</option>'+churches.map(c=>`<option value="${c.nome}"${c.nome===cur?' selected':''}>${c.nome}</option>`).join('');
+}
+
+window.addOrderRow = function() {
+  const id = genId();
+  orderRows.push({id, descricao:'', codigo:'', quantidade:1});
+  renderOrderRows();
+};
+
+function renderOrderRows() {
+  const cont = $('orderItemsContainer');
+  cont.innerHTML = orderRows.map((row,i) => `
+    <div class="order-row" id="orow_${row.id}">
+      <div style="flex:2;min-width:200px">
+        <label class="lbl">Item ${i+1}</label>
+        <div class="ac-wrap">
+          <input type="text" id="ac_input_${row.id}" value="${row.descricao}"
+            placeholder="Digite para buscar..."
+            oninput="filterAC('${row.id}',this.value)"
+            onfocus="openAC('${row.id}')"
+            onblur="setTimeout(()=>closeAC('${row.id}'),200)"
+            autocomplete="off"/>
+          <div class="ac-list" id="ac_list_${row.id}"></div>
+        </div>
+        ${row.codigo?`<div style="font-size:11px;color:var(--pink);font-family:monospace;margin-top:3px">${row.codigo}</div>`:''}
+      </div>
+      <div style="width:90px">
+        <label class="lbl">Qtd</label>
+        <input type="number" min="1" value="${row.quantidade}"
+          onchange="setRowQty('${row.id}',this.value)"/>
+      </div>
+      ${orderRows.length>1?`<button class="btn btn-red" style="align-self:flex-end" onclick="removeOrderRow('${row.id}')">✕</button>`:''}
+    </div>`).join('');
+  updateSummary();
+}
+
+function filterAC(rowId, val) {
+  const row = orderRows.find(r=>r.id===rowId);
+  if(row){ row.descricao=val; row.codigo=''; }
+  const list = $('ac_list_'+rowId);
+  if(!val.trim()){ list.classList.remove('open'); updateSummary(); return; }
+  const q = val.toLowerCase();
+  const matches = distItems.filter(d=>d.descricao.toLowerCase().includes(q)||(d.codigo||'').toLowerCase().includes(q)).slice(0,12);
+  if(!matches.length){ list.classList.remove('open'); updateSummary(); return; }
+  list.innerHTML = matches.map(d=>`
+    <div class="ac-item" onmousedown="selectAC('${rowId}','${d.descricao.replace(/'/g,"\\'")}','${(d.codigo||'').replace(/'/g,"\\'")}')">
+      ${d.descricao}
+      <div class="ac-cod">${d.codigo||''}</div>
+    </div>`).join('');
+  list.classList.add('open');
+}
+
+window.selectAC = function(rowId, descricao, codigo) {
+  const row = orderRows.find(r=>r.id===rowId);
+  if(row){ row.descricao=descricao; row.codigo=codigo; }
+  const inp = $('ac_input_'+rowId);
+  if(inp) inp.value=descricao;
+  closeAC(rowId);
+  renderOrderRows();
+  updateSummary();
+};
+
+window.openAC = function(rowId) {
+  const inp = $('ac_input_'+rowId);
+  if(inp && inp.value.trim()) filterAC(rowId, inp.value);
+};
+window.closeAC = function(rowId) {
+  const l=$('ac_list_'+rowId); if(l) l.classList.remove('open');
+};
+
+function refreshAllAutocompletes() {
+  // called when distItems reloads; just a hook if needed
+}
+
+window.setRowQty = function(rowId, val) {
+  const row = orderRows.find(r=>r.id===rowId);
+  if(row) row.quantidade = Math.max(1,Number(val)||1);
+  updateSummary();
+};
+
+window.removeOrderRow = function(rowId) {
+  orderRows = orderRows.filter(r=>r.id!==rowId);
+  renderOrderRows();
+  updateSummary();
+};
+
+// Edit a row from the summary: focus its input
+window.editOrderRow = function(rowId) {
+  const inp = $('ac_input_'+rowId);
+  if(inp){ inp.focus(); inp.select(); }
+  else { showToast('Use o campo de item acima para editar'); }
+};
+
+// Delete a row from the summary
+window.deleteOrderRow = function(rowId) {
+  orderRows = orderRows.filter(r=>r.id!==rowId);
+  renderOrderRows();
+  updateSummary();
+};
+
+// AUTO SUMMARY — shown automatically whenever there's something to show
+window.updateSummary = function() {
+  const casa = $('oCasa')?.value || '';
+  const resp = $('oResp')?.value?.trim() || '';
+  const valid = orderRows.filter(r=>r.descricao && r.quantidade>0);
+  const sumBox = $('autoSummary');
+  if(!sumBox) return;
+
+  if(!valid.length){ sumBox.classList.add('hidden'); return; }
+
+  $('sumCasa').textContent = casa || '—';
+  $('sumResp').textContent = resp || '—';
+  $('sumItemsList').innerHTML = valid.map(r=>`
+    <div class="sum-item">
+      <div class="sum-item-info">
+        <span class="sum-qty">${r.quantidade}x</span>
+        <div>
+          <div class="sum-desc">${r.descricao}</div>
+          ${r.codigo?`<div class="sum-cod">${r.codigo}</div>`:''}
+        </div>
+      </div>
+      <div class="sum-actions">
+        <button class="btn btn-blue" onclick="focusRow('${r.id}')">✏️ Editar</button>
+        <button class="btn btn-red" onclick="deleteOrderRow('${r.id}')">✕ Excluir</button>
+      </div>
+    </div>`).join('');
+  sumBox.classList.remove('hidden');
+};
+
+window.focusRow = function(rowId) {
+  const inp = $('ac_input_'+rowId);
+  if(inp){ inp.scrollIntoView({behavior:'smooth',block:'center'}); inp.focus(); inp.select(); }
+};
+
+window.showConfirmModal = function() {
+  const casa=$('oCasa').value, resp=$('oResp').value.trim();
+  const valid=orderRows.filter(r=>r.descricao&&r.quantidade>0);
+  if(!casa||!resp){showToast('Preencha Igreja e Responsável!'); return;}
+  if(!valid.length){showToast('Adicione pelo menos um item!'); return;}
+  $('confirmModal').classList.remove('hidden');
+};
+
+window.confirmOrder = async function(yes) {
+  $('confirmModal').classList.add('hidden');
+  if(!yes) return;
+  const casa=$('oCasa').value, resp=$('oResp').value.trim();
+  const valid=orderRows.filter(r=>r.descricao&&r.quantidade>0);
+  const order={id:genId(),casa,responsavel:resp,
+    itens:valid.map(r=>({descricao:r.descricao,codigo:r.codigo,quantidade:r.quantidade})),
+    data:new Date().toISOString(),status:'pendente'};
+  await addDoc(collection(db,'pedidos'),order);
+  // reset
+  $('oCasa').value=''; $('oResp').value='';
+  orderRows=[];
+  renderOrderRows();
+  $('autoSummary').classList.add('hidden');
+  $('blessingMsg').classList.remove('hidden');
+  setTimeout(()=>$('blessingMsg').classList.add('hidden'),4000);
+};
+
+// ══════════════════════════════════════════════════
+// TAB 1: PRODUTOS
+// ══════════════════════════════════════════════════
+window.addProduct = async function() {
+  const cod=$('pCod').value.trim(), desc=$('pDesc').value.trim(), un=$('pUn').value;
+  if(!cod||!desc) return;
+  await addDoc(collection(db,'products'),{id:genId(),codigo:cod,descricao:desc,unidade:un});
+  $('pCod').value=''; $('pDesc').value='';
+  showToast('Produto adicionado!');
+};
+window.removeProduct = async function(fbId){ await deleteDoc(doc(db,'products',fbId)); };
+window.renderProducts = function() {
+  const s=$('prodSearch').value.toLowerCase();
+  const f=products.filter(p=>p.codigo.toLowerCase().includes(s)||p.descricao.toLowerCase().includes(s));
+  $('prodTbody').innerHTML=f.slice(0,60).map(p=>`<tr>
+    <td><span class="mono">${p.codigo}</span></td><td>${p.descricao}</td>
+    <td><span class="badge bg-green">${p.unidade}</span></td>
+    <td><button class="btn btn-red btn-sm" onclick="removeProduct('${p._fbId}')">✕</button></td>
+  </tr>`).join('');
+  $('prodCount').textContent=f.length+' produto(s)'+(f.length>60?' (mostrando 60)':'');
+};
+
+// ══════════════════════════════════════════════════
+// TAB 2: DISTRIBUIDORA — com editar estoque inicial E entrada
+// ══════════════════════════════════════════════════
+window.addDistItem = async function() {
+  const desc=$('dDesc').value.trim(); if(!desc) return;
+  await addDoc(collection(db,'distribuidora'),{
+    id:genId(),codigo:$('dCod').value.trim(),descricao:desc,
+    unidade:$('dUn').value,categoria:$('dCat').value,
+    estoqueInicial:Number($('dEst').value),entrada:Number($('dEnt').value),pedidos:0
+  });
+  ['dCod','dDesc'].forEach(id=>$(id).value='');
+  $('dEst').value=$('dEnt').value='0';
+  showToast('Item adicionado!');
+};
+
+window.editEstoqueInicial = function(fbId, current) {
+  const val = prompt('Novo Estoque Inicial:', current);
+  if(val===null||isNaN(Number(val))) return;
+  updateDoc(doc(db,'distribuidora',fbId),{estoqueInicial:Number(val)}).then(()=>showToast('Estoque inicial atualizado!','linear-gradient(135deg,var(--green),var(--blue))'));
+};
+
+window.editEntrada = function(fbId, current) {
+  const val = prompt('Nova Entrada:', current);
+  if(val===null||isNaN(Number(val))) return;
+  updateDoc(doc(db,'distribuidora',fbId),{entrada:Number(val)}).then(()=>showToast('Entrada atualizada!','linear-gradient(135deg,var(--green),var(--blue))'));
+};
+
+function getOrderedQty(descricao) {
+  return orders.filter(o=>o.status!=='cancelado')
+    .reduce((s,o)=>s+(o.itens||[]).filter(it=>it.descricao===descricao).reduce((ss,it)=>ss+Number(it.quantidade||0),0),0);
+}
+
+window.renderDist = function() {
+  const s=$('distSearch').value.toLowerCase();
+  const f=distItems.filter(d=>d.descricao.toLowerCase().includes(s)||(d.codigo||'').toLowerCase().includes(s));
+  $('distTbody').innerHTML=f.map(d=>{
+    const pedTot=(d.pedidos||0)+getOrderedQty(d.descricao);
+    const atual=(d.estoqueInicial||0)+(d.entrada||0)-pedTot;
+    const bc=atual>5?'bg-green':atual>0?'bg-yellow':'bg-red';
+    return `<tr>
+      <td><span class="mono">${d.codigo||'-'}</span></td>
+      <td>${d.descricao}</td>
+      <td>${d.unidade||'UN'}</td>
+      <td>
+        ${d.estoqueInicial||0}
+        <button class="btn btn-blue" style="padding:3px 8px;font-size:11px;margin-left:6px" onclick="editEstoqueInicial('${d._fbId}',${d.estoqueInicial||0})">✏️</button>
+      </td>
+      <td>
+        ${d.entrada||0}
+        <button class="btn btn-blue" style="padding:3px 8px;font-size:11px;margin-left:6px" onclick="editEntrada('${d._fbId}',${d.entrada||0})">✏️</button>
+      </td>
+      <td>${pedTot}</td>
+      <td><span class="badge ${bc}">${atual}</span></td>
+    </tr>`;
+  }).join('');
+  $('distCount').textContent=f.length+' item(s)';
+};
+
+// ══════════════════════════════════════════════════
+// TAB 3: RESUMO
+// ══════════════════════════════════════════════════
+window.doLogin = function() {
+  if($('pwdInput').value===ADMIN_PASSWORD){
+    $('resumoLogin').classList.add('hidden');
+    $('resumoContent').classList.remove('hidden');
+    renderOrders(); updateStats(); populateCasaFilter();
+  } else {
+    $('pwdErr').classList.remove('hidden');
+    setTimeout(()=>$('pwdErr').classList.add('hidden'),2000);
+  }
+};
+function populateCasaFilter() {
+  const sel=$('filterCasa');
+  const casas=[...new Set(orders.map(o=>o.casa))];
+  sel.innerHTML='<option value="">Todas as casas</option>'+casas.map(c=>`<option>${c}</option>`).join('');
+}
+function updateStats() {
+  const g=$('statsGrid'); if(!g) return;
+  const total=orders.length, p=orders.filter(o=>o.status==='pendente').length,
+        e=orders.filter(o=>o.status==='entregue').length, c=orders.filter(o=>o.status==='cancelado').length;
+  const colors=['var(--pink)','var(--yellow)','var(--green)','var(--red)'];
+  const labels=['Total','Pendentes','Entregues','Cancelados'];
+  const vals=[total,p,e,c];
+  g.innerHTML=labels.map((l,i)=>`<div class="stat-card" style="border-color:${colors[i]}30">
+    <div class="stat-num" style="color:${colors[i]}">${vals[i]}</div>
+    <div class="stat-lbl">${l}</div></div>`).join('');
+}
+window.updateOrderStatus = async function(fbId, status) {
+  await updateDoc(doc(db,'pedidos',fbId),{status});
+  showToast('Status atualizado!', status==='entregue'?'linear-gradient(135deg,var(--green),#11998e)':'linear-gradient(135deg,var(--red),#c0392b)');
+};
+window.renderOrders = function() {
+  const cont=$('ordersContainer'); if(!cont) return;
+  const fc=$('filterCasa')?.value||'', fs=$('filterStatus')?.value||'', sr=($('orderSearch')?.value||'').toLowerCase();
+  const filtered=orders.filter(o=>{
+    if(fc&&o.casa!==fc) return false;
+    if(fs&&o.status!==fs) return false;
+    if(sr&&!o.casa.toLowerCase().includes(sr)&&!o.responsavel.toLowerCase().includes(sr)) return false;
+    return true;
+  });
+  if(!filtered.length){ cont.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)"><div style="font-size:48px">📭</div><div>Nenhum pedido encontrado</div></div>'; return; }
+  cont.innerHTML=filtered.map(o=>{
+    const bc=o.status==='entregue'?'bg-green':o.status==='cancelado'?'bg-red':'bg-yellow';
+    const btns=o.status==='pendente'?`
+      <button class="btn btn-green btn-sm" onclick="updateOrderStatus('${o._fbId}','entregue')">✓ Entregue</button>
+      <button class="btn btn-red btn-sm" onclick="updateOrderStatus('${o._fbId}','cancelado')">✕ Cancelar</button>`:'';
+    const tags=(o.itens||[]).map(it=>`<span style="display:inline-block;background:rgba(247,37,133,.15);border:1px solid rgba(247,37,133,.3);border-radius:8px;padding:4px 10px;font-size:13px;margin:3px">
+      <span style="color:var(--pink);font-weight:900">${it.quantidade}x</span> ${it.descricao}</span>`).join('');
+    return `<div style="background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+        <div><div style="font-weight:800;font-size:16px">👧 ${o.casa}</div>
+          <div style="color:var(--muted);font-size:13px">👤 ${o.responsavel} · 📅 ${fmtDate(o.data)}</div></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span class="badge ${bc}">${o.status.toUpperCase()}</span>${btns}</div>
+      </div>
+      <div style="margin-top:12px">${tags}</div>
+    </div>`;
+  }).join('');
+};
+window.exportPDF = function() {
+  const fc=$('filterCasa').value, fs=$('filterStatus').value;
+  const filtered=orders.filter(o=>{if(fc&&o.casa!==fc)return false;if(fs&&o.status!==fs)return false;return true;});
+  const w=window.open('','_blank');
+  const rows=filtered.map(o=>`<tr style="border-bottom:1px solid #eee">
+    <td style="padding:8px">${fmtDate(o.data)}</td><td style="padding:8px">${o.casa}</td>
+    <td style="padding:8px">${o.responsavel}</td>
+    <td style="padding:8px">${(o.itens||[]).map(it=>it.quantidade+'x '+it.descricao).join(', ')}</td>
+    <td style="padding:8px;font-weight:bold;color:${o.status==='entregue'?'#06d6a0':o.status==='cancelado'?'#ef233c':'#d4a017'}">${o.status.toUpperCase()}</td>
+  </tr>`).join('');
+  w.document.write(`<html><head><title>Relatório EBI</title>
+    <style>body{font-family:Arial,sans-serif;padding:24px}table{width:100%;border-collapse:collapse}th{background:#1a2a3e;color:#fff;padding:10px;text-align:left}</style>
+    </head><body><h1 style="color:#1a2a3e">EBI — Espaço Bíblico Infantil</h1><h2>Relatório de Pedidos</h2>
+    <p>Gerado em ${new Date().toLocaleDateString('pt-BR')} · ${filtered.length} pedido(s)</p>
+    <table><thead><tr><th>Data</th><th>Casa de Oração</th><th>Responsável</th><th>Itens</th><th>Status</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <p style="margin-top:24px;color:#aaa;font-size:12px">Desenvolvido por Leandro Machado</p></body></html>`);
+  w.document.close(); setTimeout(()=>w.print(),500);
+};
+
+// ══════════════════════════════════════════════════
+// TAB 4: CADASTRO
+// ══════════════════════════════════════════════════
+window.addChurch = async function() {
+  const val=$('churchInput').value.trim().toUpperCase(); if(!val) return;
+  if(churches.some(c=>c.nome===val)){showToast('Igreja já cadastrada!'); return;}
+  await addDoc(collection(db,'churches'),{id:genId(),nome:val});
+  $('churchInput').value=''; showToast('Casa de Oração cadastrada! 👧');
+};
+window.removeChurch = async function(fbId){ await deleteDoc(doc(db,'churches',fbId)); };
+window.renderChurches = function() {
+  const s=$('churchSearch').value.toLowerCase();
+  const f=churches.filter(c=>c.nome.toLowerCase().includes(s));
+  $('churchGrid').innerHTML=f.map(c=>`<div class="church-card">
+    <div style="font-weight:800;font-size:15px">👧 ${c.nome}</div>
+    <button class="btn btn-red btn-sm" onclick="removeChurch('${c._fbId}')">✕</button>
+  </div>`).join('');
+  $('churchCount').textContent=f.length+' casa(s) de oração';
+};
+
+// ── BOOTSTRAP ──────────────────────────────────────
+initFirebase().then(()=>{
+  addOrderRow();
+}).catch(err=>{
+  console.error('Firebase:', err);
+  churches=INIT_CHURCHES.map((n,i)=>({id:'c'+i,nome:n,_fbId:'c'+i}));
+  products=INIT_PRODUCTS.map((p,i)=>({...p,id:'p'+i,_fbId:'p'+i}));
+  distItems=INIT_DIST.map(d=>({...d,_fbId:d.id}));
+  renderChurches(); renderProducts(); renderDist(); populateChurchSelect();
+  addOrderRow();
+  showToast('⚠️ Operando offline');
+});
+</script>
+</body>
+</html>
