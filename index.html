@@ -597,10 +597,16 @@ function filterAC(rowId, val) {
   const row = orderRows.find(r=>r.id===rowId);
   if(row){ row.descricao=val; row.codigo=''; }
   const list = $('ac_list_'+rowId);
-  if(!val.trim()){ list.classList.remove('open'); updateSummary(); return; }
-  const q = val.toLowerCase();
-  const matches = distItems.filter(d=>d.descricao.toLowerCase().includes(q)||(d.codigo||'').toLowerCase().includes(q)).slice(0,12);
-  if(!matches.length){ list.classList.remove('open'); updateSummary(); return; }
+  const q = val.trim().toLowerCase();
+  // Combina distItems e products (sem duplicatas por descrição)
+  const allItems = [...distItems];
+  products.forEach(p => {
+    if(!allItems.some(d=>d.descricao===p.descricao)) allItems.push(p);
+  });
+  const matches = q
+    ? allItems.filter(d=>d.descricao.toLowerCase().includes(q)||(d.codigo||'').toLowerCase().includes(q)).slice(0,12)
+    : allItems.slice(0,12);
+  if(!matches.length){ list.classList.remove('open'); if(val.trim()) updateSummary(); return; }
   list.innerHTML = matches.map(d=>`
     <div class="ac-item" onmousedown="selectAC('${rowId}','${d.descricao.replace(/'/g,"\\'")}','${(d.codigo||'').replace(/'/g,"\\'")}')">
       ${d.descricao}
@@ -621,7 +627,7 @@ window.selectAC = function(rowId, descricao, codigo) {
 
 window.openAC = function(rowId) {
   const inp = $('ac_input_'+rowId);
-  if(inp && inp.value.trim()) filterAC(rowId, inp.value);
+  if(inp) filterAC(rowId, inp.value);
 };
 window.closeAC = function(rowId) {
   const l=$('ac_list_'+rowId); if(l) l.classList.remove('open');
@@ -826,6 +832,11 @@ function updateStats() {
     <div class="stat-num" style="color:${colors[i]}">${vals[i]}</div>
     <div class="stat-lbl">${l}</div></div>`).join('');
 }
+window.deleteOrder = async function(fbId) {
+  if(!confirm('Tem certeza que deseja excluir este pedido? Esta ação não pode ser desfeita.')) return;
+  await deleteDoc(doc(db,'pedidos',fbId));
+  showToast('Pedido excluído!','linear-gradient(135deg,var(--red),#c0392b)');
+};
 window.updateOrderStatus = async function(fbId, status) {
   await updateDoc(doc(db,'pedidos',fbId),{status});
   showToast('Status atualizado!', status==='entregue'?'linear-gradient(135deg,var(--green),#11998e)':'linear-gradient(135deg,var(--red),#c0392b)');
@@ -844,7 +855,9 @@ window.renderOrders = function() {
     const bc=o.status==='entregue'?'bg-green':o.status==='cancelado'?'bg-red':'bg-yellow';
     const btns=o.status==='pendente'?`
       <button class="btn btn-green btn-sm" onclick="updateOrderStatus('${o._fbId}','entregue')">✓ Entregue</button>
-      <button class="btn btn-red btn-sm" onclick="updateOrderStatus('${o._fbId}','cancelado')">✕ Cancelar</button>`:'';
+      <button class="btn btn-red btn-sm" onclick="updateOrderStatus('${o._fbId}','cancelado')">✕ Cancelar</button>
+      <button class="btn btn-red btn-sm" onclick="deleteOrder('${o._fbId}')" style="background:rgba(100,0,0,.35)">🗑️ Excluir</button>`:
+      `<button class="btn btn-red btn-sm" onclick="deleteOrder('${o._fbId}')" style="background:rgba(100,0,0,.35)">🗑️ Excluir</button>`;
     const tags=(o.itens||[]).map(it=>`<span style="display:inline-block;background:rgba(247,37,133,.15);border:1px solid rgba(247,37,133,.3);border-radius:8px;padding:4px 10px;font-size:13px;margin:3px">
       <span style="color:var(--pink);font-weight:900">${it.quantidade}x</span> ${it.descricao}</span>`).join('');
     return `<div style="background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:12px">
