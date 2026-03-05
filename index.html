@@ -167,6 +167,30 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
 .dev-star{font-size:14px;animation:tw 1.5s ease-in-out infinite alternate}
 @keyframes tw{from{opacity:.4;transform:scale(.9)}to{opacity:1;transform:scale(1.15)}}
 
+/* STOCK ALERT */
+.stock-alert-bar{background:linear-gradient(135deg,rgba(239,35,60,.18),rgba(247,37,133,.1));border:1px solid rgba(239,35,60,.4);border-radius:14px;padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.stock-alert-bar .alert-title{font-weight:900;color:var(--red);font-size:14px;white-space:nowrap}
+.stock-alert-item{background:rgba(239,35,60,.15);border:1px solid rgba(239,35,60,.3);border-radius:8px;padding:4px 10px;font-size:12px;font-weight:700;color:var(--red)}
+
+/* PRICE HISTORY */
+.ph-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px}
+.ph-row:last-child{border-bottom:none}
+.ph-old{color:var(--muted);text-decoration:line-through}
+.ph-new{color:var(--green);font-weight:800}
+.ph-arrow{color:var(--muted)}
+
+/* RECURRING ORDER BUTTON */
+.btn-orange{background:rgba(251,133,0,.2);color:#fb8500;border:1px solid rgba(251,133,0,.3);padding:6px 12px;font-size:12px}
+
+/* DELIVERY DATE */
+.delivery-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(6,214,160,.12);border:1px solid rgba(6,214,160,.25);border-radius:8px;padding:3px 10px;font-size:12px;color:var(--green)}
+
+/* OBS FIELD */
+.obs-tag{display:inline-block;background:rgba(67,97,238,.15);border:1px solid rgba(67,97,238,.3);border-radius:8px;padding:4px 10px;font-size:12px;color:var(--cyan);margin-top:6px}
+
+/* COMPARISON TABLE */
+.comp-badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:800}
+
 .hidden{display:none!important}
 
 @media(max-width:700px){
@@ -222,6 +246,11 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
           <button class="btn btn-sec" onclick="addOrderRow()">+ Adicionar Item</button>
         </div>
 
+        <div class="fg" style="margin-top:16px">
+          <label class="lbl">Observação (opcional)</label>
+          <textarea id="oObs" rows="2" placeholder="Ex: Entregar na sexta-feira, embrulhar separado..." style="resize:vertical"></textarea>
+        </div>
+
         <!-- RESUMO AUTOMÁTICO -->
         <div id="autoSummary" class="summary-box hidden">
           <div class="sum-title">📋 Resumo do Pedido</div>
@@ -271,6 +300,14 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
 
     <!-- ══ TAB 2: DISTRIBUIDORA ══ -->
     <div id="tab2" class="hidden">
+      <!-- ALERTA ESTOQUE BAIXO -->
+      <div id="stockAlertBar" class="stock-alert-bar hidden">
+        <div class="alert-icon">🚨</div>
+        <div>
+          <div style="font-weight:800;font-size:13px;color:var(--red);margin-bottom:4px">ITENS COM ESTOQUE ZERADO OU NEGATIVO</div>
+          <div class="stock-alert-items" id="stockAlertItems"></div>
+        </div>
+      </div>
       <div class="card">
         <div class="card-title">🏪 Distribuidora Central</div>
         <details style="margin-bottom:20px">
@@ -331,6 +368,16 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
             <input type="text" id="orderSearch" placeholder="🔍 Buscar..." oninput="renderOrders()"/>
           </div>
           <div id="ordersContainer"></div>
+        </div>
+        <!-- COMPARATIVO POR IGREJA -->
+        <div class="card">
+          <div class="card-title" style="font-size:18px">📊 Comparativo de Gastos por Igreja</div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Igreja</th><th>Pedidos</th><th>Itens Solicitados</th><th>Valor Total (R$)</th></tr></thead>
+              <tbody id="compTbody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -398,6 +445,13 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
             <canvas id="chartStatus" height="260"></canvas>
           </div>
         </div>
+        <!-- CHART: Gastos por Igreja R$ -->
+        <div style="margin-bottom:20px">
+          <div class="card" style="margin-bottom:0">
+            <div class="card-title" style="font-size:16px">💸 Gastos por Igreja (R$)</div>
+            <canvas id="chartIgrejaValor" height="100"></canvas>
+          </div>
+        </div>
         <!-- TOP ITEMS TABLE -->
         <div class="card">
           <div class="card-title" style="font-size:16px">🏆 Ranking Completo de Itens</div>
@@ -425,6 +479,16 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
 </div>
 
 <!-- MODAL CONFIRMAÇÃO -->
+<!-- MODAL PRICE HISTORY -->
+<div id="priceHistModal" class="modal-ov hidden">
+  <div class="modal-box" style="max-width:500px;text-align:left">
+    <div class="modal-icon">📈</div>
+    <div class="modal-title" id="priceHistTitle">Histórico de Preços</div>
+    <div id="priceHistList" style="margin:16px 0;max-height:300px;overflow-y:auto"></div>
+    <div class="modal-btns"><button class="btn btn-sec" onclick="$('priceHistModal').classList.add('hidden')">Fechar</button></div>
+  </div>
+</div>
+
 <div id="confirmModal" class="modal-ov hidden">
   <div class="modal-box">
     <div class="modal-icon">🤔</div>
@@ -600,11 +664,11 @@ async function initFirebase() {
   });
   onSnapshot(collection(db,'distribuidora'), snap=>{
     distItems = snap.docs.map(d=>({...d.data(),_fbId:d.id}));
-    renderDist(); refreshAllAutocompletes();
+    renderDist(); refreshAllAutocompletes(); checkStockAlerts();
   });
   onSnapshot(collection(db,'pedidos'), snap=>{
     orders = snap.docs.map(d=>({...d.data(),_fbId:d.id})).sort((a,b)=>new Date(b.data)-new Date(a.data));
-    renderOrders(); updateStats();
+    renderOrders(); updateStats(); checkStockAlerts();
     if(!$('dashContent').classList.contains('hidden')) renderDashboard();
   });
 }
@@ -630,7 +694,7 @@ function populateChurchSelect() {
 
 window.addOrderRow = function() {
   const id = genId();
-  orderRows.push({id, descricao:'', codigo:'', quantidade:1});
+  orderRows.push({id, descricao:'', codigo:'', quantidade:1, selecionado:false});
   renderOrderRows();
 };
 
@@ -698,7 +762,7 @@ function getAllItems() {
 
 function filterAC(rowId, val) {
   const row = orderRows.find(r=>r.id===rowId);
-  if(row){ row.descricao=val; row.codigo=''; }
+  if(row){ row.descricao=val; row.codigo=''; row.selecionado=false; }
   const list = $('ac_list_'+rowId);
   if(!list) return;
   const q = val.trim().toLowerCase();
@@ -727,7 +791,7 @@ function filterAC(rowId, val) {
 
 window.selectAC = function(rowId, descricao, codigo) {
   const row = orderRows.find(r=>r.id===rowId);
-  if(row){ row.descricao=descricao; row.codigo=codigo; }
+  if(row){ row.descricao=descricao; row.codigo=codigo; row.selecionado=true; }
   const inp = $('ac_input_'+rowId);
   if(inp) inp.value = descricao;
   const cod = $('ac_cod_'+rowId);
@@ -780,7 +844,7 @@ window.deleteOrderRow = function(rowId) {
 window.updateSummary = function() {
   const casa = $('oCasa')?.value || '';
   const resp = $('oResp')?.value?.trim() || '';
-  const valid = orderRows.filter(r=>r.descricao && r.quantidade>0);
+  const valid = orderRows.filter(r=>r.selecionado && r.descricao && r.quantidade>0);
   const sumBox = $('autoSummary');
   if(!sumBox) return;
 
@@ -812,9 +876,9 @@ window.focusRow = function(rowId) {
 
 window.showConfirmModal = function() {
   const casa=$('oCasa').value, resp=$('oResp').value.trim();
-  const valid=orderRows.filter(r=>r.descricao&&r.quantidade>0);
+  const valid=orderRows.filter(r=>r.selecionado&&r.descricao&&r.quantidade>0);
   if(!casa||!resp){showToast('Preencha Igreja e Responsável!'); return;}
-  if(!valid.length){showToast('Adicione pelo menos um item!'); return;}
+  if(!valid.length){showToast('Selecione pelo menos um item da lista!'); return;}
   $('confirmModal').classList.remove('hidden');
 };
 
@@ -822,13 +886,15 @@ window.confirmOrder = async function(yes) {
   $('confirmModal').classList.add('hidden');
   if(!yes) return;
   const casa=$('oCasa').value, resp=$('oResp').value.trim();
-  const valid=orderRows.filter(r=>r.descricao&&r.quantidade>0);
+  const obs=($('oObs')?.value||'').trim();
+  const valid=orderRows.filter(r=>r.selecionado&&r.descricao&&r.quantidade>0);
   const order={id:genId(),casa,responsavel:resp,
     itens:valid.map(r=>({descricao:r.descricao,codigo:r.codigo,quantidade:r.quantidade})),
-    data:new Date().toISOString(),status:'pendente'};
+    data:new Date().toISOString(),status:'pendente',obs:obs||''};
   await addDoc(collection(db,'pedidos'),order);
   // reset
   $('oCasa').value=''; $('oResp').value='';
+  if($('oObs')) $('oObs').value='';
   orderRows=[];
   renderOrderRows();
   $('autoSummary').classList.add('hidden');
@@ -891,10 +957,35 @@ function getOrderedQty(descricao) {
     .reduce((s,o)=>s+(o.itens||[]).filter(it=>it.descricao===descricao).reduce((ss,it)=>ss+Number(it.quantidade||0),0),0);
 }
 
-window.editValorUnit = function(fbId, current) {
+window.editValorUnit = async function(fbId, current) {
   const val = prompt('Valor Unitário (R$):', current);
   if(val===null||isNaN(Number(val))) return;
-  updateDoc(doc(db,'distribuidora',fbId),{valorUnit:Number(val)}).then(()=>showToast('Valor atualizado!','linear-gradient(135deg,var(--green),var(--blue))'));
+  const novoValor = Number(val);
+  const item = distItems.find(d=>d._fbId===fbId);
+  const hist = item?.priceHistory||[];
+  if(current>0) hist.push({valor:current, data:new Date().toISOString()});
+  await updateDoc(doc(db,'distribuidora',fbId),{valorUnit:novoValor, priceHistory:hist});
+  showToast('Valor atualizado!','linear-gradient(135deg,var(--green),var(--blue))');
+};
+
+window.showPriceHistory = function(fbId) {
+  const item = distItems.find(d=>d._fbId===fbId); if(!item) return;
+  const hist = item.priceHistory||[];
+  $('priceHistTitle').textContent = '📈 '+item.descricao.slice(0,40);
+  const fmtR=v=>'R$ '+Number(v).toFixed(2).replace('.',',');
+  if(!hist.length && !item.valorUnit){
+    $('priceHistList').innerHTML='<div style="color:var(--muted);text-align:center;padding:20px">Nenhum histórico registrado</div>';
+  } else {
+    const all=[...hist.map(h=>({...h,atual:false}))];
+    if(item.valorUnit>0) all.push({valor:item.valorUnit,data:new Date().toISOString(),atual:true});
+    $('priceHistList').innerHTML=all.reverse().map((h,i)=>`
+      <div class="ph-row">
+        <span style="font-size:11px;color:var(--muted);min-width:90px">${fmtDate(h.data)}</span>
+        <span class="${h.atual?'ph-new':''}" style="font-weight:700">${fmtR(h.valor)}</span>
+        ${h.atual?'<span style="background:rgba(6,214,160,.2);color:var(--green);border-radius:6px;padding:1px 8px;font-size:11px;font-weight:800">ATUAL</span>':''}
+      </div>`).join('');
+  }
+  $('priceHistModal').classList.remove('hidden');
 };
 
 window.renderDist = function() {
@@ -921,7 +1012,8 @@ window.renderDist = function() {
       </td>
       <td>
         <span style="color:var(--green);font-weight:700">${fmtR(valorUnit)}</span>
-        <button class="btn btn-blue" style="padding:3px 8px;font-size:11px;margin-left:6px" onclick="editValorUnit('${d._fbId}',${valorUnit})">✏️</button>
+        <button class="btn btn-blue" style="padding:3px 8px;font-size:11px;margin-left:4px" onclick="editValorUnit('${d._fbId}',${valorUnit})">✏️</button>
+        <button class="btn btn-sec" style="padding:3px 8px;font-size:11px;margin-left:2px" onclick="showPriceHistory('${d._fbId}')">📈</button>
       </td>
       <td>${pedTot}</td>
       <td><span class="badge ${bc}">${atual}</span></td>
@@ -966,7 +1058,9 @@ window.deleteOrder = async function(fbId) {
   showToast('Pedido excluído!','linear-gradient(135deg,var(--red),#c0392b)');
 };
 window.updateOrderStatus = async function(fbId, status) {
-  await updateDoc(doc(db,'pedidos',fbId),{status});
+  const upd={status};
+  if(status==='entregue') upd.dataEntrega=new Date().toISOString();
+  await updateDoc(doc(db,'pedidos',fbId),upd);
   showToast('Status atualizado!', status==='entregue'?'linear-gradient(135deg,var(--green),#11998e)':'linear-gradient(135deg,var(--red),#c0392b)');
 };
 window.renderOrders = function() {
@@ -988,17 +1082,86 @@ window.renderOrders = function() {
       `<button class="btn btn-red btn-sm" onclick="deleteOrder('${o._fbId}')" style="background:rgba(100,0,0,.35)">🗑️ Excluir</button>`;
     const tags=(o.itens||[]).map(it=>`<span style="display:inline-block;background:rgba(247,37,133,.15);border:1px solid rgba(247,37,133,.3);border-radius:8px;padding:4px 10px;font-size:13px;margin:3px">
       <span style="color:var(--pink);font-weight:900">${it.quantidade}x</span> ${it.descricao}</span>`).join('');
+    const deliveryLine = o.dataEntrega ? `<span class="delivery-badge">🚚 Entregue em ${fmtDate(o.dataEntrega)}</span>` : '';
+    const obsLine = o.obs ? `<div class="obs-tag">💬 ${o.obs}</div>` : '';
+    const recurBtn = `<button class="btn btn-orange btn-sm" onclick="repeatOrder('${o._fbId}')">🔁 Repetir Pedido</button>`;
     return `<div style="background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:12px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
-        <div><div style="font-weight:800;font-size:16px">👧 ${o.casa}</div>
-          <div style="color:var(--muted);font-size:13px">👤 ${o.responsavel} · 📅 ${fmtDate(o.data)}</div></div>
+        <div>
+          <div style="font-weight:800;font-size:16px">👧 ${o.casa}</div>
+          <div style="color:var(--muted);font-size:13px">👤 ${o.responsavel} · 📅 ${fmtDate(o.data)}</div>
+          ${deliveryLine}
+        </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <span class="badge ${bc}">${o.status.toUpperCase()}</span>${btns}</div>
+          <span class="badge ${bc}">${o.status.toUpperCase()}</span>${btns}${recurBtn}
+        </div>
       </div>
       <div style="margin-top:12px">${tags}</div>
+      ${obsLine}
     </div>`;
   }).join('');
+  renderCompTable();
 };
+
+function renderCompTable() {
+  const tb=$('compTbody'); if(!tb) return;
+  const priceMap={};
+  distItems.forEach(d=>{ if(d.valorUnit>0) priceMap[d.descricao]=d.valorUnit; });
+  const activeOrds=orders.filter(o=>o.status!=='cancelado');
+  const map={};
+  activeOrds.forEach(o=>{
+    if(!map[o.casa]) map[o.casa]={pedidos:0,itens:0,valor:0};
+    map[o.casa].pedidos++;
+    (o.itens||[]).forEach(it=>{
+      map[o.casa].itens+=Number(it.quantidade||1);
+      map[o.casa].valor+=(priceMap[it.descricao]||0)*Number(it.quantidade||1);
+    });
+  });
+  const sorted=Object.entries(map).sort((a,b)=>b[1].valor-a[1].valor);
+  const fmtR=v=>v>0?'R$ '+v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,'.').replace('.',','):'—';
+  tb.innerHTML=sorted.map(([nome,d],i)=>`<tr>
+    <td><span style="font-weight:900;color:${i<3?'var(--yellow)':'var(--muted)'}">${i<3?['🥇','🥈','🥉'][i]:i+1}</span></td>
+    <td style="font-weight:700">👧 ${nome}</td>
+    <td><span class="badge bg-yellow">${d.pedidos}</span></td>
+    <td>${d.itens} un.</td>
+    <td style="font-weight:800;color:var(--green)">${fmtR(d.valor)}</td>
+  </tr>`).join('');
+}
+
+window.repeatOrder = function(fbId) {
+  const o=orders.find(x=>x._fbId===fbId); if(!o) return;
+  showTab(0);
+  setTimeout(()=>{
+    $('oCasa').value=o.casa;
+    if($('oResp')) $('oResp').value=o.responsavel;
+    orderRows=[];
+    const cont=$('orderItemsContainer');
+    cont.innerHTML='';
+    (o.itens||[]).forEach(it=>{
+      const id=genId();
+      orderRows.push({id,descricao:it.descricao,codigo:it.codigo||'',quantidade:Number(it.quantidade)||1,selecionado:true});
+    });
+    renderOrderRows();
+    updateSummary();
+    showToast('Pedido duplicado! Revise e envie 🔁','linear-gradient(135deg,#fb8500,#f72585)');
+  },100);
+};
+
+function checkStockAlerts() {
+  const bar=$('stockAlertBar'), items=$('stockAlertItems');
+  if(!bar||!items) return;
+  const low=distItems.filter(d=>{
+    const pedTot=(d.pedidos||0)+getOrderedQty(d.descricao);
+    const atual=(d.estoqueInicial||0)+(d.entrada||0)-pedTot;
+    return atual<=0;
+  });
+  if(low.length){
+    items.innerHTML=low.slice(0,8).map(d=>`<span class="stock-alert-item">❌ ${d.descricao.slice(0,30)}</span>`).join('');
+    bar.classList.remove('hidden');
+  } else {
+    bar.classList.add('hidden');
+  }
+}
 window.exportPDF = function() {
   const fc=$('filterCasa').value, fs=$('filterStatus').value;
   const filtered=orders.filter(o=>{if(fc&&o.casa!==fc)return false;if(fs&&o.status!==fs)return false;return true;});
@@ -1007,13 +1170,15 @@ window.exportPDF = function() {
     <td style="padding:8px">${fmtDate(o.data)}</td><td style="padding:8px">${o.casa}</td>
     <td style="padding:8px">${o.responsavel}</td>
     <td style="padding:8px">${(o.itens||[]).map(it=>it.quantidade+'x '+it.descricao).join(', ')}</td>
+    <td style="padding:8px;font-size:12px;color:#555">${o.obs||'—'}</td>
+    <td style="padding:8px">${o.dataEntrega?fmtDate(o.dataEntrega):'—'}</td>
     <td style="padding:8px;font-weight:bold;color:${o.status==='entregue'?'#06d6a0':o.status==='cancelado'?'#ef233c':'#d4a017'}">${o.status.toUpperCase()}</td>
   </tr>`).join('');
   w.document.write(`<html><head><title>Relatório EBI</title>
     <style>body{font-family:Arial,sans-serif;padding:24px}table{width:100%;border-collapse:collapse}th{background:#1a2a3e;color:#fff;padding:10px;text-align:left}</style>
     </head><body><h1 style="color:#1a2a3e">EBI — Espaço Bíblico Infantil</h1><h2>Relatório de Pedidos</h2>
     <p>Gerado em ${new Date().toLocaleDateString('pt-BR')} · ${filtered.length} pedido(s)</p>
-    <table><thead><tr><th>Data</th><th>Casa de Oração</th><th>Responsável</th><th>Itens</th><th>Status</th></tr></thead>
+    <table><thead><tr><th>Data Pedido</th><th>Casa de Oração</th><th>Responsável</th><th>Itens</th><th>Observação</th><th>Data Entrega</th><th>Status</th></tr></thead>
     <tbody>${rows}</tbody></table>
     <p style="margin-top:24px;color:#aaa;font-size:12px">Desenvolvido por Leandro Machado</p></body></html>`);
   w.document.close(); setTimeout(()=>w.print(),500);
@@ -1239,6 +1404,34 @@ function renderDashboard() {
     <td style="font-weight:900;color:var(--cyan)">${e[1]}</td>
     <td>${countOrders(e[0])}</td>
   </tr>`).join('');
+
+  // ── CHART: Gastos por Igreja R$ ──
+  const igValMap={};
+  activeOrders.forEach(o=>{
+    if(!igValMap[o.casa]) igValMap[o.casa]=0;
+    (o.itens||[]).forEach(it=>{ igValMap[o.casa]+=(priceMap[it.descricao]||0)*Number(it.quantidade||1); });
+  });
+  const igValSorted=Object.entries(igValMap).sort((a,b)=>b[1]-a[1]);
+  const igValColors=['rgba(247,37,133,0.75)','rgba(114,9,183,0.75)','rgba(67,97,238,0.75)','rgba(76,201,240,0.75)','rgba(6,214,160,0.75)','rgba(255,214,10,0.75)','rgba(239,35,60,0.75)','rgba(251,133,0,0.75)'];
+  destroyChart('igrejaValor');
+  dashCharts['igrejaValor'] = new Chart($('chartIgrejaValor'),{
+    type:'bar',
+    data:{labels:igValSorted.map(e=>e[0]),datasets:[{label:'R$',data:igValSorted.map(e=>parseFloat(e[1].toFixed(2))),backgroundColor:igValColors,borderWidth:2,borderRadius:8}]},
+    options:{
+      responsive:true,layout:{padding:{top:32}},
+      plugins:{
+        legend:{display:false},
+        datalabels:{color:'#fff',font:{weight:'bold',size:11},anchor:'end',align:'top',clamp:true,
+          formatter:v=>v>0?'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}):''}
+      },
+      scales:{
+        x:{ticks:{color:'#aaa'}},
+        y:{ticks:{color:'#aaa',callback:v=>'R$ '+v.toLocaleString('pt-BR')},beginAtZero:true,grace:'15%'}
+      }
+    },
+    plugins:[ChartDataLabels]
+  });
+
 }
 
 // ── BOOTSTRAP ──────────────────────────────────────
