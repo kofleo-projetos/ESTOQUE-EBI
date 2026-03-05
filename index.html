@@ -174,6 +174,7 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
   .stats-grid{grid-template-columns:repeat(2,1fr)}
   nav{width:100%;justify-content:center}
   main{padding:16px 12px}
+  #chartsRow1{grid-template-columns:1fr!important}
 }
 </style>
 </head>
@@ -194,6 +195,7 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
       <button class="tab-btn" onclick="showTab(2)">🏪 Distribuidora</button>
       <button class="tab-btn" onclick="showTab(3)">📋 Resumo</button>
       <button class="tab-btn" onclick="showTab(4)">🏛️ Cadastro</button>
+      <button class="tab-btn" onclick="showTab(5)">📊 Dashboard</button>
     </nav>
   </header>
 
@@ -282,6 +284,7 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
             <div class="fg"><label class="lbl">Categoria</label><input type="text" id="dCat" value="DESCARTÁVEIS"/></div>
             <div class="fg"><label class="lbl">Estoque Inicial</label><input type="number" id="dEst" value="0"/></div>
             <div class="fg"><label class="lbl">Entrada</label><input type="number" id="dEnt" value="0"/></div>
+            <div class="fg"><label class="lbl">Valor Unit. (R$)</label><input type="number" id="dValor" value="0" step="0.01"/></div>
           </div>
           <button class="btn btn-primary" style="margin-top:12px" onclick="addDistItem()">+ Adicionar Item</button>
         </details>
@@ -290,7 +293,7 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
         </div>
         <div class="tbl-wrap">
           <table>
-            <thead><tr><th>Código</th><th>Descrição</th><th>Un</th><th>Est. Inicial</th><th>Entrada</th><th>Pedidos</th><th>Estoque Atual</th></tr></thead>
+            <thead><tr><th>Código</th><th>Descrição</th><th>Un</th><th>Est. Inicial</th><th>Entrada</th><th>Valor Unit.</th><th>Pedidos</th><th>Estoque Atual</th><th>Valor Total</th></tr></thead>
             <tbody id="distTbody"></tbody>
           </table>
         </div>
@@ -351,6 +354,63 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
       </div>
     </div>
 
+    <!-- ══ TAB 5: DASHBOARD ══ -->
+    <div id="tab5" class="hidden">
+      <div id="dashLogin" class="card" style="max-width:380px;margin:0 auto">
+        <div class="card-title">🔒 Área Restrita</div>
+        <p style="color:var(--muted);margin-bottom:20px;font-size:14px">Esta área requer senha de responsável.</p>
+        <div class="fg" style="margin-bottom:12px">
+          <label class="lbl">Senha</label>
+          <input type="password" id="dashPwdInput" placeholder="Digite a senha..." onkeydown="if(event.key==='Enter')doDashLogin()"/>
+        </div>
+        <div id="dashPwdErr" class="hidden" style="color:var(--red);font-size:13px;margin-bottom:12px">❌ Senha incorreta</div>
+        <button class="btn btn-primary" onclick="doDashLogin()">Entrar</button>
+      </div>
+      <div id="dashContent" class="hidden">
+        <!-- KPI CARDS -->
+        <div id="dashKpiGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:28px"></div>
+        <!-- CHARTS ROW 1 -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px" id="chartsRow1">
+          <div class="card" style="margin-bottom:0">
+            <div class="card-title" style="font-size:16px">📅 Pedidos por Mês</div>
+            <canvas id="chartMes" height="220"></canvas>
+          </div>
+          <div class="card" style="margin-bottom:0">
+            <div class="card-title" style="font-size:16px">⛪ Pedidos por Igreja</div>
+            <canvas id="chartIgreja" height="220"></canvas>
+          </div>
+        </div>
+        <!-- CHARTS ROW 1b: Gastos -->
+        <div style="margin-bottom:20px">
+          <div class="card" style="margin-bottom:0">
+            <div class="card-title" style="font-size:16px">💰 Gastos Mensais em R$ — <span id="dashAnoLabel"></span></div>
+            <canvas id="chartGastosMes" height="110"></canvas>
+          </div>
+        </div>
+        <!-- CHARTS ROW 2 -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+          <div class="card" style="margin-bottom:0">
+            <div class="card-title" style="font-size:16px">📦 Top 10 Itens Mais Pedidos</div>
+            <canvas id="chartTopItens" height="260"></canvas>
+          </div>
+          <div class="card" style="margin-bottom:0">
+            <div class="card-title" style="font-size:16px">🔄 Status dos Pedidos</div>
+            <canvas id="chartStatus" height="260"></canvas>
+          </div>
+        </div>
+        <!-- TOP ITEMS TABLE -->
+        <div class="card">
+          <div class="card-title" style="font-size:16px">🏆 Ranking Completo de Itens</div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Item</th><th>Código</th><th>Qtd Total</th><th>Pedidos</th></tr></thead>
+              <tbody id="dashRankingTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <footer>
@@ -379,6 +439,9 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
 
 <div id="toast" class="toast hidden"></div>
 
+<!-- Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <!-- FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -542,14 +605,19 @@ async function initFirebase() {
   onSnapshot(collection(db,'pedidos'), snap=>{
     orders = snap.docs.map(d=>({...d.data(),_fbId:d.id})).sort((a,b)=>new Date(b.data)-new Date(a.data));
     renderOrders(); updateStats();
+    if(!$('dashContent').classList.contains('hidden')) renderDashboard();
   });
 }
 
 // ── TAB NAVIGATION ─────────────────────────────────
 window.showTab = function(idx) {
-  for(let i=0;i<5;i++){$('tab'+i).classList.add('hidden');document.querySelectorAll('.tab-btn')[i].classList.remove('active');}
+  for(let i=0;i<6;i++){
+    const t=$('tab'+i); if(t) t.classList.add('hidden');
+    const b=document.querySelectorAll('.tab-btn')[i]; if(b) b.classList.remove('active');
+  }
   $('tab'+idx).classList.remove('hidden');
   document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+  if(idx===5 && !$('dashContent').classList.contains('hidden')) renderDashboard();
 };
 
 // ══════════════════════════════════════════════════
@@ -568,73 +636,118 @@ window.addOrderRow = function() {
 
 function renderOrderRows() {
   const cont = $('orderItemsContainer');
-  cont.innerHTML = orderRows.map((row,i) => `
-    <div class="order-row" id="orow_${row.id}">
-      <div style="flex:2;min-width:200px">
-        <label class="lbl">Item ${i+1}</label>
-        <div class="ac-wrap">
-          <input type="text" id="ac_input_${row.id}" value="${row.descricao}"
-            placeholder="Digite para buscar..."
-            oninput="filterAC('${row.id}',this.value)"
-            onfocus="openAC('${row.id}')"
-            onblur="setTimeout(()=>closeAC('${row.id}'),200)"
-            autocomplete="off"/>
-          <div class="ac-list" id="ac_list_${row.id}"></div>
+  // Apenas adiciona linhas que ainda não existem no DOM; atualiza o label e botão remover
+  orderRows.forEach((row, i) => {
+    let existing = $('orow_'+row.id);
+    if (!existing) {
+      const div = document.createElement('div');
+      div.className = 'order-row';
+      div.id = 'orow_'+row.id;
+      div.innerHTML = `
+        <div style="flex:2;min-width:200px">
+          <label class="lbl" id="orow_lbl_${row.id}">Item ${i+1}</label>
+          <div class="ac-wrap">
+            <input type="text" id="ac_input_${row.id}"
+              placeholder="Digite para buscar..."
+              autocomplete="off" spellcheck="false"/>
+            <div class="ac-list" id="ac_list_${row.id}"></div>
+          </div>
+          <div id="ac_cod_${row.id}" style="font-size:11px;color:var(--pink);font-family:monospace;margin-top:3px;min-height:16px"></div>
         </div>
-        ${row.codigo?`<div style="font-size:11px;color:var(--pink);font-family:monospace;margin-top:3px">${row.codigo}</div>`:''}
-      </div>
-      <div style="width:90px">
-        <label class="lbl">Qtd</label>
-        <input type="number" min="1" value="${row.quantidade}"
-          onchange="setRowQty('${row.id}',this.value)"/>
-      </div>
-      ${orderRows.length>1?`<button class="btn btn-red" style="align-self:flex-end" onclick="removeOrderRow('${row.id}')">✕</button>`:''}
-    </div>`).join('');
+        <div style="width:90px">
+          <label class="lbl">Qtd</label>
+          <input type="number" min="1" id="ac_qty_${row.id}" value="${row.quantidade}"/>
+        </div>
+        <button class="btn btn-red" id="ac_del_${row.id}" style="align-self:flex-end;display:none" onclick="removeOrderRow('${row.id}')">✕</button>`;
+      cont.appendChild(div);
+      // Bind events after insert
+      const inp = div.querySelector('input[type=text]');
+      inp.value = row.descricao || '';
+      inp.addEventListener('input', function(){ filterAC(row.id, this.value); });
+      inp.addEventListener('focus', function(){ filterAC(row.id, this.value); });
+      inp.addEventListener('blur', function(){ setTimeout(()=>closeAC(row.id), 200); });
+      const qtyInp = div.querySelector('input[type=number]');
+      qtyInp.addEventListener('change', function(){ setRowQty(row.id, this.value); });
+    }
+    // Update label number
+    const lbl = $('orow_lbl_'+row.id);
+    if(lbl) lbl.textContent = 'Item '+(i+1);
+    // Update code badge
+    const cod = $('ac_cod_'+row.id);
+    if(cod) cod.textContent = row.codigo || '';
+    // Update qty if not focused
+    const qtyEl = $('ac_qty_'+row.id);
+    if(qtyEl && document.activeElement !== qtyEl) qtyEl.value = row.quantidade;
+    // Show/hide remove button
+    const delBtn = $('ac_del_'+row.id);
+    if(delBtn) delBtn.style.display = orderRows.length > 1 ? '' : 'none';
+  });
+  // Remove DOM rows that no longer exist in orderRows
+  Array.from(cont.children).forEach(child => {
+    const id = child.id.replace('orow_','');
+    if(!orderRows.some(r=>r.id===id)) cont.removeChild(child);
+  });
   updateSummary();
+}
+
+function getAllItems() {
+  const allItems = [...distItems];
+  products.forEach(p => { if(!allItems.some(d=>d.descricao===p.descricao)) allItems.push(p); });
+  return allItems;
 }
 
 function filterAC(rowId, val) {
   const row = orderRows.find(r=>r.id===rowId);
   if(row){ row.descricao=val; row.codigo=''; }
   const list = $('ac_list_'+rowId);
+  if(!list) return;
   const q = val.trim().toLowerCase();
-  // Combina distItems e products (sem duplicatas por descrição)
-  const allItems = [...distItems];
-  products.forEach(p => {
-    if(!allItems.some(d=>d.descricao===p.descricao)) allItems.push(p);
-  });
+  const allItems = getAllItems();
   const matches = q
-    ? allItems.filter(d=>d.descricao.toLowerCase().includes(q)||(d.codigo||'').toLowerCase().includes(q)).slice(0,12)
-    : allItems.slice(0,12);
-  if(!matches.length){ list.classList.remove('open'); if(val.trim()) updateSummary(); return; }
+    ? allItems.filter(d=>d.descricao.toLowerCase().includes(q)||(d.codigo||'').toLowerCase().includes(q)).slice(0,15)
+    : allItems.slice(0,15);
+  if(!matches.length){ list.classList.remove('open'); updateSummary(); return; }
   list.innerHTML = matches.map(d=>`
-    <div class="ac-item" onmousedown="selectAC('${rowId}','${d.descricao.replace(/'/g,"\\'")}','${(d.codigo||'').replace(/'/g,"\\'")}')">
+    <div class="ac-item" data-desc="${d.descricao.replace(/"/g,'&quot;')}" data-cod="${(d.codigo||'').replace(/"/g,'&quot;')}">
       ${d.descricao}
       <div class="ac-cod">${d.codigo||''}</div>
     </div>`).join('');
+  // Bind mousedown on each item to prevent blur from firing first
+  list.querySelectorAll('.ac-item').forEach(item => {
+    item.addEventListener('mousedown', function(e){
+      e.preventDefault();
+      const desc = this.getAttribute('data-desc');
+      const cod = this.getAttribute('data-cod');
+      selectAC(rowId, desc, cod);
+    });
+  });
   list.classList.add('open');
+  updateSummary();
 }
 
 window.selectAC = function(rowId, descricao, codigo) {
   const row = orderRows.find(r=>r.id===rowId);
   if(row){ row.descricao=descricao; row.codigo=codigo; }
   const inp = $('ac_input_'+rowId);
-  if(inp) inp.value=descricao;
+  if(inp) inp.value = descricao;
+  const cod = $('ac_cod_'+rowId);
+  if(cod) cod.textContent = codigo || '';
   closeAC(rowId);
-  renderOrderRows();
   updateSummary();
 };
 
-window.openAC = function(rowId) {
-  const inp = $('ac_input_'+rowId);
-  if(inp) filterAC(rowId, inp.value);
-};
 window.closeAC = function(rowId) {
   const l=$('ac_list_'+rowId); if(l) l.classList.remove('open');
 };
 
 function refreshAllAutocompletes() {
-  // called when distItems reloads; just a hook if needed
+  // Re-filter any open lists when data reloads
+  orderRows.forEach(row => {
+    const inp = $('ac_input_'+row.id);
+    if(inp && $('ac_list_'+row.id)?.classList.contains('open')) {
+      filterAC(row.id, inp.value);
+    }
+  });
 }
 
 window.setRowQty = function(rowId, val) {
@@ -753,10 +866,11 @@ window.addDistItem = async function() {
   await addDoc(collection(db,'distribuidora'),{
     id:genId(),codigo:$('dCod').value.trim(),descricao:desc,
     unidade:$('dUn').value,categoria:$('dCat').value,
-    estoqueInicial:Number($('dEst').value),entrada:Number($('dEnt').value),pedidos:0
+    estoqueInicial:Number($('dEst').value),entrada:Number($('dEnt').value),pedidos:0,
+    valorUnit:Number($('dValor').value)||0
   });
   ['dCod','dDesc'].forEach(id=>$(id).value='');
-  $('dEst').value=$('dEnt').value='0';
+  $('dEst').value=$('dEnt').value=$('dValor').value='0';
   showToast('Item adicionado!');
 };
 
@@ -777,6 +891,12 @@ function getOrderedQty(descricao) {
     .reduce((s,o)=>s+(o.itens||[]).filter(it=>it.descricao===descricao).reduce((ss,it)=>ss+Number(it.quantidade||0),0),0);
 }
 
+window.editValorUnit = function(fbId, current) {
+  const val = prompt('Valor Unitário (R$):', current);
+  if(val===null||isNaN(Number(val))) return;
+  updateDoc(doc(db,'distribuidora',fbId),{valorUnit:Number(val)}).then(()=>showToast('Valor atualizado!','linear-gradient(135deg,var(--green),var(--blue))'));
+};
+
 window.renderDist = function() {
   const s=$('distSearch').value.toLowerCase();
   const f=distItems.filter(d=>d.descricao.toLowerCase().includes(s)||(d.codigo||'').toLowerCase().includes(s));
@@ -784,6 +904,9 @@ window.renderDist = function() {
     const pedTot=(d.pedidos||0)+getOrderedQty(d.descricao);
     const atual=(d.estoqueInicial||0)+(d.entrada||0)-pedTot;
     const bc=atual>5?'bg-green':atual>0?'bg-yellow':'bg-red';
+    const valorUnit = d.valorUnit||0;
+    const valorTotal = valorUnit * Math.max(0,atual);
+    const fmtR = v => 'R$ '+v.toFixed(2).replace('.',',');
     return `<tr>
       <td><span class="mono">${d.codigo||'-'}</span></td>
       <td>${d.descricao}</td>
@@ -796,8 +919,13 @@ window.renderDist = function() {
         ${d.entrada||0}
         <button class="btn btn-blue" style="padding:3px 8px;font-size:11px;margin-left:6px" onclick="editEntrada('${d._fbId}',${d.entrada||0})">✏️</button>
       </td>
+      <td>
+        <span style="color:var(--green);font-weight:700">${fmtR(valorUnit)}</span>
+        <button class="btn btn-blue" style="padding:3px 8px;font-size:11px;margin-left:6px" onclick="editValorUnit('${d._fbId}',${valorUnit})">✏️</button>
+      </td>
       <td>${pedTot}</td>
       <td><span class="badge ${bc}">${atual}</span></td>
+      <td style="font-weight:700;color:${valorUnit>0?'var(--cyan)':'var(--muted)'}">${valorUnit>0?fmtR(valorTotal):'—'}</td>
     </tr>`;
   }).join('');
   $('distCount').textContent=f.length+' item(s)';
@@ -910,6 +1038,208 @@ window.renderChurches = function() {
   </div>`).join('');
   $('churchCount').textContent=f.length+' casa(s) de oração';
 };
+
+// ══════════════════════════════════════════════════
+// TAB 5: DASHBOARD
+// ══════════════════════════════════════════════════
+let dashCharts = {};
+
+window.doDashLogin = function() {
+  if($('dashPwdInput').value===ADMIN_PASSWORD){
+    $('dashLogin').classList.add('hidden');
+    $('dashContent').classList.remove('hidden');
+    renderDashboard();
+  } else {
+    $('dashPwdErr').classList.remove('hidden');
+    setTimeout(()=>$('dashPwdErr').classList.add('hidden'),2000);
+  }
+};
+
+function destroyChart(key) {
+  if(dashCharts[key]){ dashCharts[key].destroy(); delete dashCharts[key]; }
+}
+
+function renderDashboard() {
+  const now = new Date();
+  const thisMes = now.getMonth(), thisAno = now.getFullYear();
+
+  // ── KPI CALCULATIONS ──────────────────────────
+  const activeOrders = orders.filter(o=>o.status!=='cancelado');
+  const thisMesOrders = activeOrders.filter(o=>{const d=new Date(o.data);return d.getMonth()===thisMes&&d.getFullYear()===thisAno;});
+
+  // Item mais pedido
+  const itemCount = {};
+  activeOrders.forEach(o=>(o.itens||[]).forEach(it=>{
+    const k=it.descricao; itemCount[k]=(itemCount[k]||0)+Number(it.quantidade||1);
+  }));
+  const topItem = Object.entries(itemCount).sort((a,b)=>b[1]-a[1])[0];
+
+  // Valor total gasto no mês (com preços da distribuidora)
+  const priceMap = {};
+  distItems.forEach(d=>{ if(d.valorUnit>0) priceMap[d.descricao]=d.valorUnit; });
+  const valorMes = thisMesOrders.reduce((s,o)=>s+(o.itens||[]).reduce((ss,it)=>ss+(priceMap[it.descricao]||0)*Number(it.quantidade||1),0),0);
+  const valorTotal = activeOrders.reduce((s,o)=>s+(o.itens||[]).reduce((ss,it)=>ss+(priceMap[it.descricao]||0)*Number(it.quantidade||1),0),0);
+
+  // Total igrejas ativas
+  const igrejasAtivas = new Set(activeOrders.map(o=>o.casa)).size;
+
+  const fmtR = v => 'R$ '+v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,'.').replace('.',',');
+  const kpis = [
+    {icon:'📦', label:'Pedidos Este Mês', val:thisMesOrders.length, color:'var(--pink)'},
+    {icon:'📋', label:'Total de Pedidos', val:activeOrders.length, color:'var(--cyan)'},
+    {icon:'⛪', label:'Igrejas Ativas', val:igrejasAtivas, color:'var(--violet)'},
+    {icon:'💰', label:'Valor Gasto no Mês', val:valorMes>0?fmtR(valorMes):'—', color:'var(--green)'},
+    {icon:'💳', label:'Valor Total Geral', val:valorTotal>0?fmtR(valorTotal):'—', color:'var(--yellow)'},
+    {icon:'🏆', label:'Item Mais Pedido', val:topItem?topItem[0].slice(0,22)+'…':'—', color:'var(--pink)', sub:topItem?topItem[1]+' un.':''},
+  ];
+  const anoLabel = $('dashAnoLabel'); if(anoLabel) anoLabel.textContent = thisAno;
+  $('dashKpiGrid').innerHTML = kpis.map(k=>`
+    <div class="card" style="margin-bottom:0;border-color:${k.color}40;text-align:center;padding:20px 14px">
+      <div style="font-size:36px;margin-bottom:6px">${k.icon}</div>
+      <div style="font-family:'Fredoka One',cursive;font-size:22px;color:${k.color};line-height:1.1">${k.val}</div>
+      ${k.sub?`<div style="font-size:12px;color:var(--muted);margin-top:2px">${k.sub}</div>`:''}
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.4px">${k.label}</div>
+    </div>`).join('');
+
+  // ── CHART: Pedidos por Mês (últimos 6 meses) ──
+  const meses = [];
+  const mesesCount = [];
+  for(let i=5;i>=0;i--){
+    const d=new Date(thisAno,thisMes-i,1);
+    meses.push(d.toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}));
+    mesesCount.push(orders.filter(o=>{const od=new Date(o.data);return od.getMonth()===d.getMonth()&&od.getFullYear()===d.getFullYear();}).length);
+  }
+  destroyChart('mes');
+  dashCharts['mes'] = new Chart($('chartMes'),{
+    type:'bar',
+    data:{labels:meses,datasets:[{label:'Pedidos',data:mesesCount,backgroundColor:'rgba(247,37,133,0.7)',borderColor:'rgba(247,37,133,1)',borderWidth:2,borderRadius:6}]},
+    options:{
+      responsive:true,
+      layout:{padding:{top:28}},
+      plugins:{
+        legend:{display:false},
+        datalabels:{color:'#fff',font:{weight:'bold',size:13},anchor:'end',align:'top',clamp:true,formatter:v=>v>0?v:''}
+      },
+      scales:{
+        x:{ticks:{color:'#aaa'}},
+        y:{ticks:{color:'#aaa'},beginAtZero:true,grace:'15%'}
+      }
+    },
+    plugins:[ChartDataLabels]
+  });
+
+  // ── CHART: Gastos por Mês em R$ (ano atual) ──
+  const mesesAno = [];
+  const gastosAno = [];
+  for(let i=0;i<12;i++){
+    const d=new Date(thisAno,i,1);
+    mesesAno.push(d.toLocaleDateString('pt-BR',{month:'short'}));
+    const mesOrders = activeOrders.filter(o=>{const od=new Date(o.data);return od.getMonth()===i&&od.getFullYear()===thisAno;});
+    const gasto = mesOrders.reduce((s,o)=>s+(o.itens||[]).reduce((ss,it)=>ss+(priceMap[it.descricao]||0)*Number(it.quantidade||1),0),0);
+    gastosAno.push(parseFloat(gasto.toFixed(2)));
+  }
+  destroyChart('gastosMes');
+  dashCharts['gastosMes'] = new Chart($('chartGastosMes'),{
+    type:'bar',
+    data:{labels:mesesAno,datasets:[{label:'Gastos (R$)',data:gastosAno,backgroundColor:'rgba(6,214,160,0.7)',borderColor:'rgba(6,214,160,1)',borderWidth:2,borderRadius:6}]},
+    options:{
+      responsive:true,
+      layout:{padding:{top:32}},
+      plugins:{
+        legend:{display:false},
+        datalabels:{
+          color:'#fff',font:{weight:'bold',size:10},anchor:'end',align:'top',clamp:true,
+          formatter:v=>v>0?'R$\n'+v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}):''
+        }
+      },
+      scales:{
+        x:{ticks:{color:'#aaa'}},
+        y:{
+          ticks:{color:'#aaa',callback:v=>'R$ '+v.toLocaleString('pt-BR')},
+          beginAtZero:true,grace:'15%'
+        }
+      }
+    },
+    plugins:[ChartDataLabels]
+  });
+
+  // ── CHART: Pedidos por Igreja ──
+  const igrejaMap = {};
+  activeOrders.forEach(o=>{ igrejaMap[o.casa]=(igrejaMap[o.casa]||0)+1; });
+  const igSorted = Object.entries(igrejaMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const igColors = ['#f72585','#7209b7','#4361ee','#4cc9f0','#06d6a0','#ffd60a','#ef233c','#fb8500'];
+  destroyChart('igreja');
+  dashCharts['igreja'] = new Chart($('chartIgreja'),{
+    type:'doughnut',
+    data:{labels:igSorted.map(e=>e[0]),datasets:[{data:igSorted.map(e=>e[1]),backgroundColor:igColors,borderWidth:2,borderColor:'#0d1b2a'}]},
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{position:'right',labels:{color:'#ccc',font:{size:11}}},
+        datalabels:{color:'#fff',font:{weight:'bold',size:12},formatter:(v,ctx)=>{
+          const total=ctx.dataset.data.reduce((a,b)=>a+b,0);
+          const pct=Math.round(v/total*100);
+          return pct>5?v+'\n('+pct+'%)':'';
+        }}
+      }
+    },
+    plugins:[ChartDataLabels]
+  });
+
+  // ── CHART: Top 10 Itens ──
+  const top10 = Object.entries(itemCount).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  destroyChart('topItens');
+  dashCharts['topItens'] = new Chart($('chartTopItens'),{
+    type:'bar',
+    data:{labels:top10.map(e=>e[0].slice(0,22)),datasets:[{label:'Qtd',data:top10.map(e=>e[1]),backgroundColor:'rgba(76,201,240,0.7)',borderColor:'rgba(76,201,240,1)',borderWidth:2,borderRadius:6}]},
+    options:{
+      indexAxis:'y',
+      responsive:true,
+      plugins:{
+        legend:{display:false},
+        datalabels:{color:'#fff',font:{weight:'bold',size:12},anchor:'end',align:'right',formatter:v=>v}
+      },
+      scales:{x:{ticks:{color:'#aaa'}},y:{ticks:{color:'#aaa',font:{size:10}}}}
+    },
+    plugins:[ChartDataLabels]
+  });
+
+  // ── CHART: Status ──
+  const pend=orders.filter(o=>o.status==='pendente').length;
+  const entr=orders.filter(o=>o.status==='entregue').length;
+  const canc=orders.filter(o=>o.status==='cancelado').length;
+  destroyChart('status');
+  dashCharts['status'] = new Chart($('chartStatus'),{
+    type:'pie',
+    data:{labels:['Pendente','Entregue','Cancelado'],datasets:[{data:[pend,entr,canc],backgroundColor:['rgba(255,214,10,0.85)','rgba(6,214,160,0.85)','rgba(239,35,60,0.85)'],borderWidth:2,borderColor:'#0d1b2a'}]},
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{position:'bottom',labels:{color:'#ccc'}},
+        datalabels:{color:'#111',font:{weight:'bold',size:13},formatter:(v,ctx)=>{
+          if(v===0) return '';
+          const total=ctx.dataset.data.reduce((a,b)=>a+b,0);
+          const pct=Math.round(v/total*100);
+          return v+'\n('+pct+'%)';
+        }}
+      }
+    },
+    plugins:[ChartDataLabels]
+  });
+
+  // ── RANKING TABLE ──
+  const rankAll = Object.entries(itemCount).sort((a,b)=>b[1]-a[1]);
+  const codeMap = {};
+  [...distItems,...products].forEach(d=>{ if(d.descricao) codeMap[d.descricao]=d.codigo||''; });
+  const countOrders = desc => activeOrders.filter(o=>(o.itens||[]).some(it=>it.descricao===desc)).length;
+  $('dashRankingTbody').innerHTML = rankAll.map((e,i)=>`<tr>
+    <td><span style="font-weight:900;color:${i<3?'var(--yellow)':'var(--muted)'}">${i<3?['🥇','🥈','🥉'][i]:i+1}</span></td>
+    <td>${e[0]}</td>
+    <td><span class="mono">${codeMap[e[0]]||'—'}</span></td>
+    <td style="font-weight:900;color:var(--cyan)">${e[1]}</td>
+    <td>${countOrders(e[0])}</td>
+  </tr>`).join('');
+}
 
 // ── BOOTSTRAP ──────────────────────────────────────
 initFirebase().then(()=>{
