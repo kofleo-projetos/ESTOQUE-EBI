@@ -191,6 +191,10 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
 /* COMPARISON TABLE */
 .comp-badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:800}
 
+/* EDIT DIST MODAL */
+.modal-box-left{text-align:left}
+.modal-field{margin-bottom:14px}
+
 .hidden{display:none!important}
 
 @media(max-width:700px){
@@ -330,7 +334,7 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
         </div>
         <div class="tbl-wrap">
           <table>
-            <thead><tr><th>Código</th><th>Descrição</th><th>Un</th><th>Est. Inicial</th><th>Entrada</th><th>Valor Unit.</th><th>Pedidos</th><th>Estoque Atual</th><th>Valor Total</th></tr></thead>
+            <thead><tr><th>Ações</th><th>Código</th><th>Descrição</th><th>Un</th><th>Est. Inicial</th><th>Entrada</th><th>Valor Unit.</th><th>Pedidos</th><th>Estoque Atual</th><th>Valor Total</th></tr></thead>
             <tbody id="distTbody"></tbody>
           </table>
         </div>
@@ -478,17 +482,49 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
   </footer>
 </div>
 
-<!-- MODAL CONFIRMAÇÃO -->
-<!-- MODAL PRICE HISTORY -->
+<!-- ══ MODAL: HISTÓRICO DE PREÇOS ══
+     FIX: onclick usa função global window.closePriceHistModal() ao invés de $() que é module-scoped -->
 <div id="priceHistModal" class="modal-ov hidden">
   <div class="modal-box" style="max-width:500px;text-align:left">
     <div class="modal-icon">📈</div>
     <div class="modal-title" id="priceHistTitle">Histórico de Preços</div>
     <div id="priceHistList" style="margin:16px 0;max-height:300px;overflow-y:auto"></div>
-    <div class="modal-btns"><button class="btn btn-sec" onclick="$('priceHistModal').classList.add('hidden')">Fechar</button></div>
+    <div class="modal-btns">
+      <!-- FIX: era onclick="$('priceHistModal').classList.add('hidden')" — $ é module-scoped, não funciona inline -->
+      <button class="btn btn-sec" onclick="closePriceHistModal()">Fechar</button>
+    </div>
   </div>
 </div>
 
+<!-- ══ MODAL: EDITAR ITEM DA DISTRIBUIDORA (NOVO) ══ -->
+<div id="editDistModal" class="modal-ov hidden">
+  <div class="modal-box" style="max-width:500px;text-align:left">
+    <div class="modal-icon">✏️</div>
+    <div class="modal-title">Editar Item</div>
+    <div class="modal-sub" style="margin-bottom:16px">Altere o código e/ou a descrição do produto.</div>
+    <input type="hidden" id="editDistFbId"/>
+    <div class="modal-field">
+      <label class="lbl">Código</label>
+      <input type="text" id="editDistCodigo" placeholder="Ex: ESPINF0001"/>
+    </div>
+    <div class="modal-field">
+      <label class="lbl">Descrição</label>
+      <input type="text" id="editDistDescricao" placeholder="Nome do produto"/>
+    </div>
+    <div class="modal-field">
+      <label class="lbl">Unidade</label>
+      <select id="editDistUnidade">
+        <option>UN</option><option>CX</option><option>PC</option><option>KG</option><option>L</option><option>METROS</option>
+      </select>
+    </div>
+    <div class="modal-btns" style="margin-top:20px">
+      <button class="btn btn-primary" onclick="saveEditDist()">💾 Salvar</button>
+      <button class="btn btn-sec" onclick="closeEditDistModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: CONFIRMAÇÃO DE PEDIDO ══ -->
 <div id="confirmModal" class="modal-ov hidden">
   <div class="modal-box">
     <div class="modal-icon">🤔</div>
@@ -506,6 +542,19 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
 <!-- Chart.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+
+<!-- ══ FUNÇÕES GLOBAIS PARA MODAIS (acessíveis por onclick inline) ══ -->
+<script>
+  // FIX 1: Fechar modal de histórico de preços — exposto globalmente pois $ é module-scoped
+  function closePriceHistModal() {
+    document.getElementById('priceHistModal').classList.add('hidden');
+  }
+  // FIX 2: Fechar modal de edição da distribuidora
+  function closeEditDistModal() {
+    document.getElementById('editDistModal').classList.add('hidden');
+  }
+</script>
+
 <!-- FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -526,7 +575,6 @@ const db = getFirestore(app);
 // ── STATE ──────────────────────────────────────────
 const ADMIN_PASSWORD = "amem";
 let churches = [], products = [], distItems = [], orders = [];
-// orderRows: [{id, descricao, codigo, quantidade}]
 let orderRows = [];
 
 // ── SEED DATA ──────────────────────────────────────
@@ -685,7 +733,7 @@ window.showTab = function(idx) {
 };
 
 // ══════════════════════════════════════════════════
-// TAB 0: PEDIDOS — com autocomplete e resumo automático
+// TAB 0: PEDIDOS
 // ══════════════════════════════════════════════════
 function populateChurchSelect() {
   const s=$('oCasa'); const cur=s.value;
@@ -700,7 +748,6 @@ window.addOrderRow = function() {
 
 function renderOrderRows() {
   const cont = $('orderItemsContainer');
-  // Apenas adiciona linhas que ainda não existem no DOM; atualiza o label e botão remover
   orderRows.forEach((row, i) => {
     let existing = $('orow_'+row.id);
     if (!existing) {
@@ -724,7 +771,6 @@ function renderOrderRows() {
         </div>
         <button class="btn btn-red" id="ac_del_${row.id}" style="align-self:flex-end;display:none" onclick="removeOrderRow('${row.id}')">✕</button>`;
       cont.appendChild(div);
-      // Bind events after insert
       const inp = div.querySelector('input[type=text]');
       inp.value = row.descricao || '';
       inp.addEventListener('input', function(){ filterAC(row.id, this.value); });
@@ -733,20 +779,15 @@ function renderOrderRows() {
       const qtyInp = div.querySelector('input[type=number]');
       qtyInp.addEventListener('change', function(){ setRowQty(row.id, this.value); });
     }
-    // Update label number
     const lbl = $('orow_lbl_'+row.id);
     if(lbl) lbl.textContent = 'Item '+(i+1);
-    // Update code badge
     const cod = $('ac_cod_'+row.id);
     if(cod) cod.textContent = row.codigo || '';
-    // Update qty if not focused
     const qtyEl = $('ac_qty_'+row.id);
     if(qtyEl && document.activeElement !== qtyEl) qtyEl.value = row.quantidade;
-    // Show/hide remove button
     const delBtn = $('ac_del_'+row.id);
     if(delBtn) delBtn.style.display = orderRows.length > 1 ? '' : 'none';
   });
-  // Remove DOM rows that no longer exist in orderRows
   Array.from(cont.children).forEach(child => {
     const id = child.id.replace('orow_','');
     if(!orderRows.some(r=>r.id===id)) cont.removeChild(child);
@@ -776,7 +817,6 @@ function filterAC(rowId, val) {
       ${d.descricao}
       <div class="ac-cod">${d.codigo||''}</div>
     </div>`).join('');
-  // Bind mousedown on each item to prevent blur from firing first
   list.querySelectorAll('.ac-item').forEach(item => {
     item.addEventListener('mousedown', function(e){
       e.preventDefault();
@@ -805,7 +845,6 @@ window.closeAC = function(rowId) {
 };
 
 function refreshAllAutocompletes() {
-  // Re-filter any open lists when data reloads
   orderRows.forEach(row => {
     const inp = $('ac_input_'+row.id);
     if(inp && $('ac_list_'+row.id)?.classList.contains('open')) {
@@ -826,21 +865,18 @@ window.removeOrderRow = function(rowId) {
   updateSummary();
 };
 
-// Edit a row from the summary: focus its input
 window.editOrderRow = function(rowId) {
   const inp = $('ac_input_'+rowId);
   if(inp){ inp.focus(); inp.select(); }
   else { showToast('Use o campo de item acima para editar'); }
 };
 
-// Delete a row from the summary
 window.deleteOrderRow = function(rowId) {
   orderRows = orderRows.filter(r=>r.id!==rowId);
   renderOrderRows();
   updateSummary();
 };
 
-// AUTO SUMMARY — shown automatically whenever there's something to show
 window.updateSummary = function() {
   const casa = $('oCasa')?.value || '';
   const resp = $('oResp')?.value?.trim() || '';
@@ -892,7 +928,6 @@ window.confirmOrder = async function(yes) {
     itens:valid.map(r=>({descricao:r.descricao,codigo:r.codigo,quantidade:r.quantidade})),
     data:new Date().toISOString(),status:'pendente',obs:obs||''};
   await addDoc(collection(db,'pedidos'),order);
-  // reset
   $('oCasa').value=''; $('oResp').value='';
   if($('oObs')) $('oObs').value='';
   orderRows=[];
@@ -925,7 +960,7 @@ window.renderProducts = function() {
 };
 
 // ══════════════════════════════════════════════════
-// TAB 2: DISTRIBUIDORA — com editar estoque inicial E entrada
+// TAB 2: DISTRIBUIDORA
 // ══════════════════════════════════════════════════
 window.addDistItem = async function() {
   const desc=$('dDesc').value.trim(); if(!desc) return;
@@ -938,6 +973,33 @@ window.addDistItem = async function() {
   ['dCod','dDesc'].forEach(id=>$(id).value='');
   $('dEst').value=$('dEnt').value=$('dValor').value='0';
   showToast('Item adicionado!');
+};
+
+// ── FIX 2: Abrir modal de edição de código/descrição/unidade ──
+window.openEditDist = function(fbId) {
+  const item = distItems.find(d=>d._fbId===fbId);
+  if(!item) return;
+  $('editDistFbId').value = fbId;
+  $('editDistCodigo').value = item.codigo || '';
+  $('editDistDescricao').value = item.descricao || '';
+  $('editDistUnidade').value = item.unidade || 'UN';
+  $('editDistModal').classList.remove('hidden');
+  setTimeout(()=>$('editDistCodigo').focus(), 100);
+};
+
+window.saveEditDist = async function() {
+  const fbId = $('editDistFbId').value;
+  const novoCodigo = $('editDistCodigo').value.trim();
+  const novaDesc = $('editDistDescricao').value.trim();
+  const novaUn = $('editDistUnidade').value;
+  if(!novaDesc){ showToast('A descrição não pode estar vazia!'); return; }
+  await updateDoc(doc(db,'distribuidora',fbId),{
+    codigo: novoCodigo,
+    descricao: novaDesc,
+    unidade: novaUn
+  });
+  $('editDistModal').classList.add('hidden');
+  showToast('Item atualizado com sucesso! ✅','linear-gradient(135deg,var(--green),var(--blue))');
 };
 
 window.editEstoqueInicial = function(fbId, current) {
@@ -999,6 +1061,11 @@ window.renderDist = function() {
     const valorTotal = valorUnit * Math.max(0,atual);
     const fmtR = v => 'R$ '+v.toFixed(2).replace('.',',');
     return `<tr>
+      <td>
+        <!-- NOVO: Botão de editar código/nome do produto -->
+        <button class="btn btn-blue" style="padding:4px 10px;font-size:11px;white-space:nowrap" 
+          onclick="openEditDist('${d._fbId}')">✏️ Editar</button>
+      </td>
       <td><span class="mono">${d.codigo||'-'}</span></td>
       <td>${d.descricao}</td>
       <td>${d.unidade||'UN'}</td>
@@ -1228,24 +1295,20 @@ function renderDashboard() {
   const now = new Date();
   const thisMes = now.getMonth(), thisAno = now.getFullYear();
 
-  // ── KPI CALCULATIONS ──────────────────────────
   const activeOrders = orders.filter(o=>o.status!=='cancelado');
   const thisMesOrders = activeOrders.filter(o=>{const d=new Date(o.data);return d.getMonth()===thisMes&&d.getFullYear()===thisAno;});
 
-  // Item mais pedido
   const itemCount = {};
   activeOrders.forEach(o=>(o.itens||[]).forEach(it=>{
     const k=it.descricao; itemCount[k]=(itemCount[k]||0)+Number(it.quantidade||1);
   }));
   const topItem = Object.entries(itemCount).sort((a,b)=>b[1]-a[1])[0];
 
-  // Valor total gasto no mês (com preços da distribuidora)
   const priceMap = {};
   distItems.forEach(d=>{ if(d.valorUnit>0) priceMap[d.descricao]=d.valorUnit; });
   const valorMes = thisMesOrders.reduce((s,o)=>s+(o.itens||[]).reduce((ss,it)=>ss+(priceMap[it.descricao]||0)*Number(it.quantidade||1),0),0);
   const valorTotal = activeOrders.reduce((s,o)=>s+(o.itens||[]).reduce((ss,it)=>ss+(priceMap[it.descricao]||0)*Number(it.quantidade||1),0),0);
 
-  // Total igrejas ativas
   const igrejasAtivas = new Set(activeOrders.map(o=>o.casa)).size;
 
   const fmtR = v => 'R$ '+v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,'.').replace('.',',');
@@ -1266,7 +1329,6 @@ function renderDashboard() {
       <div style="font-size:11px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.4px">${k.label}</div>
     </div>`).join('');
 
-  // ── CHART: Pedidos por Mês (últimos 6 meses) ──
   const meses = [];
   const mesesCount = [];
   for(let i=5;i>=0;i--){
@@ -1293,7 +1355,6 @@ function renderDashboard() {
     plugins:[ChartDataLabels]
   });
 
-  // ── CHART: Gastos por Mês em R$ (ano atual) ──
   const mesesAno = [];
   const gastosAno = [];
   for(let i=0;i<12;i++){
@@ -1328,7 +1389,6 @@ function renderDashboard() {
     plugins:[ChartDataLabels]
   });
 
-  // ── CHART: Pedidos por Igreja ──
   const igrejaMap = {};
   activeOrders.forEach(o=>{ igrejaMap[o.casa]=(igrejaMap[o.casa]||0)+1; });
   const igSorted = Object.entries(igrejaMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
@@ -1351,7 +1411,6 @@ function renderDashboard() {
     plugins:[ChartDataLabels]
   });
 
-  // ── CHART: Top 10 Itens ──
   const top10 = Object.entries(itemCount).sort((a,b)=>b[1]-a[1]).slice(0,10);
   destroyChart('topItens');
   dashCharts['topItens'] = new Chart($('chartTopItens'),{
@@ -1369,7 +1428,6 @@ function renderDashboard() {
     plugins:[ChartDataLabels]
   });
 
-  // ── CHART: Status ──
   const pend=orders.filter(o=>o.status==='pendente').length;
   const entr=orders.filter(o=>o.status==='entregue').length;
   const canc=orders.filter(o=>o.status==='cancelado').length;
@@ -1392,7 +1450,6 @@ function renderDashboard() {
     plugins:[ChartDataLabels]
   });
 
-  // ── RANKING TABLE ──
   const rankAll = Object.entries(itemCount).sort((a,b)=>b[1]-a[1]);
   const codeMap = {};
   [...distItems,...products].forEach(d=>{ if(d.descricao) codeMap[d.descricao]=d.codigo||''; });
@@ -1405,7 +1462,6 @@ function renderDashboard() {
     <td>${countOrders(e[0])}</td>
   </tr>`).join('');
 
-  // ── CHART: Gastos por Igreja R$ ──
   const igValMap={};
   activeOrders.forEach(o=>{
     if(!igValMap[o.casa]) igValMap[o.casa]=0;
@@ -1431,7 +1487,6 @@ function renderDashboard() {
     },
     plugins:[ChartDataLabels]
   });
-
 }
 
 // ── BOOTSTRAP ──────────────────────────────────────
