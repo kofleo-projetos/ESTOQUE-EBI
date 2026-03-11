@@ -188,12 +188,20 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
 /* OBS FIELD */
 .obs-tag{display:inline-block;background:rgba(67,97,238,.15);border:1px solid rgba(67,97,238,.3);border-radius:8px;padding:4px 10px;font-size:12px;color:var(--cyan);margin-top:6px}
 
-/* COMPARISON TABLE */
-.comp-badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:800}
-
 /* EDIT DIST MODAL */
 .modal-box-left{text-align:left}
 .modal-field{margin-bottom:14px}
+
+/* WHATSAPP BUTTON */
+.btn-whatsapp{background:rgba(37,211,102,.2);color:#25d366;border:1px solid rgba(37,211,102,.3);padding:6px 12px;font-size:12px}
+.btn-whatsapp:hover{background:rgba(37,211,102,.35)}
+
+/* PRINT STYLES */
+@media print{
+  .blobs,.tab-btn,nav,header,.btn{display:none!important}
+  body{background:#fff;color:#000}
+  .card{border:1px solid #ccc;background:#fff}
+}
 
 .hidden{display:none!important}
 
@@ -218,12 +226,12 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
       </div>
     </div>
     <nav>
+      <!-- Aba "Produtos" REMOVIDA — agora temos 5 abas (índices 0..4) -->
       <button class="tab-btn active" onclick="showTab(0)">🛒 Pedidos</button>
-      <button class="tab-btn" onclick="showTab(1)">📦 Produtos</button>
-      <button class="tab-btn" onclick="showTab(2)">🏪 Distribuidora</button>
-      <button class="tab-btn" onclick="showTab(3)">📋 Resumo</button>
-      <button class="tab-btn" onclick="showTab(4)">🏛️ Cadastro</button>
-      <button class="tab-btn" onclick="showTab(5)">📊 Dashboard</button>
+      <button class="tab-btn" onclick="showTab(1)">🏪 Distribuidora</button>
+      <button class="tab-btn" onclick="showTab(2)">📋 Resumo</button>
+      <button class="tab-btn" onclick="showTab(3)">🏛️ Cadastro</button>
+      <button class="tab-btn" onclick="showTab(4)">📊 Dashboard</button>
     </nav>
   </header>
 
@@ -236,7 +244,7 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
           <div class="fg">
             <label class="lbl">Casa de Oração *</label>
-            <select id="oCasa"><option value="">— Selecione —</option></select>
+            <select id="oCasa" onchange="updateSummary()"><option value="">— Selecione —</option></select>
           </div>
           <div class="fg">
             <label class="lbl">Responsável *</label>
@@ -248,6 +256,7 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
         <div id="orderItemsContainer"></div>
         <div class="btn-grp">
           <button class="btn btn-sec" onclick="addOrderRow()">+ Adicionar Item</button>
+          <button class="btn btn-sec" onclick="clearAllRows()" style="color:var(--red);border-color:rgba(239,35,60,.3)">🗑️ Limpar Tudo</button>
         </div>
 
         <div class="fg" style="margin-top:16px">
@@ -277,33 +286,8 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
       </div>
     </div>
 
-    <!-- ══ TAB 1: PRODUTOS ══ -->
+    <!-- ══ TAB 1: DISTRIBUIDORA ══ -->
     <div id="tab1" class="hidden">
-      <div class="card">
-        <div class="card-title">📦 Produtos</div>
-        <div style="display:grid;grid-template-columns:160px 1fr 110px auto;gap:12px;margin-bottom:20px;align-items:flex-end;flex-wrap:wrap">
-          <div class="fg"><label class="lbl">Código</label><input type="text" id="pCod" placeholder="ESPINF0001"/></div>
-          <div class="fg"><label class="lbl">Descrição</label><input type="text" id="pDesc" placeholder="Nome do produto"/></div>
-          <div class="fg"><label class="lbl">Unidade</label>
-            <select id="pUn"><option>UN</option><option>CX</option><option>PC</option><option>KG</option><option>L</option><option>METROS</option></select>
-          </div>
-          <div><button class="btn btn-primary" onclick="addProduct()">+ Adicionar</button></div>
-        </div>
-        <div class="search-row">
-          <input type="text" id="prodSearch" placeholder="🔍 Buscar código ou descrição..." oninput="renderProducts()"/>
-        </div>
-        <div class="tbl-wrap">
-          <table>
-            <thead><tr><th>Código</th><th>Descrição</th><th>Unidade</th><th></th></tr></thead>
-            <tbody id="prodTbody"></tbody>
-          </table>
-        </div>
-        <div id="prodCount" style="margin-top:10px;font-size:13px;color:var(--muted)"></div>
-      </div>
-    </div>
-
-    <!-- ══ TAB 2: DISTRIBUIDORA ══ -->
-    <div id="tab2" class="hidden">
       <!-- ALERTA ESTOQUE BAIXO -->
       <div id="stockAlertBar" class="stock-alert-bar hidden">
         <div class="alert-icon">🚨</div>
@@ -338,12 +322,18 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
             <tbody id="distTbody"></tbody>
           </table>
         </div>
+        <!-- TOTAIS DA DISTRIBUIDORA -->
+        <div id="distTotais" style="margin-top:16px;padding:14px 18px;background:rgba(67,97,238,.1);border:1px solid rgba(67,97,238,.25);border-radius:12px;display:flex;gap:24px;flex-wrap:wrap">
+          <div><span style="color:var(--muted);font-size:12px">TOTAL EM ESTOQUE:</span> <strong id="distTotValor" style="color:var(--cyan)">—</strong></div>
+          <div><span style="color:var(--muted);font-size:12px">ITENS CADASTRADOS:</span> <strong id="distTotItens" style="color:var(--pink)">—</strong></div>
+          <div><span style="color:var(--muted);font-size:12px">ITENS ZERADOS:</span> <strong id="distTotZero" style="color:var(--red)">—</strong></div>
+        </div>
         <div id="distCount" style="margin-top:10px;font-size:13px;color:var(--muted)"></div>
       </div>
     </div>
 
-    <!-- ══ TAB 3: RESUMO ══ -->
-    <div id="tab3" class="hidden">
+    <!-- ══ TAB 2: RESUMO ══ -->
+    <div id="tab2" class="hidden">
       <div id="resumoLogin" class="card" style="max-width:380px;margin:0 auto">
         <div class="card-title">🔒 Área Restrita</div>
         <p style="color:var(--muted);margin-bottom:20px;font-size:14px">Esta área requer senha de responsável.</p>
@@ -358,7 +348,10 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px">
             <div class="card-title" style="margin-bottom:0">📋 Resumo dos Pedidos</div>
-            <button class="btn btn-primary btn-sm" onclick="exportPDF()">📄 Exportar PDF</button>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-primary btn-sm" onclick="exportPDF()">📄 Exportar PDF</button>
+              <button class="btn btn-whatsapp btn-sm" onclick="exportWhatsApp()">📱 WhatsApp</button>
+            </div>
           </div>
           <div class="stats-grid" id="statsGrid"></div>
           <div class="search-row">
@@ -386,8 +379,8 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
       </div>
     </div>
 
-    <!-- ══ TAB 4: CADASTRO ══ -->
-    <div id="tab4" class="hidden">
+    <!-- ══ TAB 3: CADASTRO ══ -->
+    <div id="tab3" class="hidden">
       <div class="card">
         <div class="card-title">🏛️ Casas de Oração</div>
         <div style="display:grid;grid-template-columns:1fr auto;gap:12px;margin-bottom:20px;align-items:flex-end">
@@ -405,8 +398,8 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
       </div>
     </div>
 
-    <!-- ══ TAB 5: DASHBOARD ══ -->
-    <div id="tab5" class="hidden">
+    <!-- ══ TAB 4: DASHBOARD ══ -->
+    <div id="tab4" class="hidden">
       <div id="dashLogin" class="card" style="max-width:380px;margin:0 auto">
         <div class="card-title">🔒 Área Restrita</div>
         <p style="color:var(--muted);margin-bottom:20px;font-size:14px">Esta área requer senha de responsável.</p>
@@ -482,21 +475,19 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
   </footer>
 </div>
 
-<!-- ══ MODAL: HISTÓRICO DE PREÇOS ══
-     FIX: onclick usa função global window.closePriceHistModal() ao invés de $() que é module-scoped -->
+<!-- ══ MODAL: HISTÓRICO DE PREÇOS ══ -->
 <div id="priceHistModal" class="modal-ov hidden">
   <div class="modal-box" style="max-width:500px;text-align:left">
     <div class="modal-icon">📈</div>
     <div class="modal-title" id="priceHistTitle">Histórico de Preços</div>
     <div id="priceHistList" style="margin:16px 0;max-height:300px;overflow-y:auto"></div>
     <div class="modal-btns">
-      <!-- FIX: era onclick="$('priceHistModal').classList.add('hidden')" — $ é module-scoped, não funciona inline -->
       <button class="btn btn-sec" onclick="closePriceHistModal()">Fechar</button>
     </div>
   </div>
 </div>
 
-<!-- ══ MODAL: EDITAR ITEM DA DISTRIBUIDORA (NOVO) ══ -->
+<!-- ══ MODAL: EDITAR ITEM DA DISTRIBUIDORA ══ -->
 <div id="editDistModal" class="modal-ov hidden">
   <div class="modal-box" style="max-width:500px;text-align:left">
     <div class="modal-icon">✏️</div>
@@ -543,13 +534,11 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 
-<!-- ══ FUNÇÕES GLOBAIS PARA MODAIS (acessíveis por onclick inline) ══ -->
+<!-- ══ FUNÇÕES GLOBAIS PARA MODAIS ══ -->
 <script>
-  // FIX 1: Fechar modal de histórico de preços — exposto globalmente pois $ é module-scoped
   function closePriceHistModal() {
     document.getElementById('priceHistModal').classList.add('hidden');
   }
-  // FIX 2: Fechar modal de edição da distribuidora
   function closeEditDistModal() {
     document.getElementById('editDistModal').classList.add('hidden');
   }
@@ -685,6 +674,7 @@ const INIT_DIST = [
 const $ = id => document.getElementById(id);
 const genId = () => 'id_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
 const fmtDate = d => new Date(d).toLocaleDateString('pt-BR');
+const fmtR = v => 'R$ '+Number(v).toFixed(2).replace('.',',');
 
 function showToast(msg, color='linear-gradient(135deg,var(--pink),var(--violet))') {
   const t=$('toast'); t.textContent=msg; t.style.background=color;
@@ -708,7 +698,6 @@ async function initFirebase() {
   });
   onSnapshot(collection(db,'products'), snap=>{
     products = snap.docs.map(d=>({...d.data(),_fbId:d.id}));
-    renderProducts();
   });
   onSnapshot(collection(db,'distribuidora'), snap=>{
     distItems = snap.docs.map(d=>({...d.data(),_fbId:d.id}));
@@ -721,15 +710,15 @@ async function initFirebase() {
   });
 }
 
-// ── TAB NAVIGATION ─────────────────────────────────
+// ── TAB NAVIGATION — 5 abas agora (0..4) ──────────
 window.showTab = function(idx) {
-  for(let i=0;i<6;i++){
+  for(let i=0;i<5;i++){
     const t=$('tab'+i); if(t) t.classList.add('hidden');
     const b=document.querySelectorAll('.tab-btn')[i]; if(b) b.classList.remove('active');
   }
   $('tab'+idx).classList.remove('hidden');
   document.querySelectorAll('.tab-btn')[idx].classList.add('active');
-  if(idx===5 && !$('dashContent').classList.contains('hidden')) renderDashboard();
+  if(idx===4 && !$('dashContent').classList.contains('hidden')) renderDashboard();
 };
 
 // ══════════════════════════════════════════════════
@@ -744,6 +733,17 @@ window.addOrderRow = function() {
   const id = genId();
   orderRows.push({id, descricao:'', codigo:'', quantidade:1, selecionado:false});
   renderOrderRows();
+};
+
+// NOVO: Limpar todos os itens do pedido
+window.clearAllRows = function() {
+  if(orderRows.length === 0) return;
+  orderRows = [];
+  const cont = $('orderItemsContainer');
+  cont.innerHTML = '';
+  addOrderRow();
+  $('autoSummary').classList.add('hidden');
+  showToast('Itens limpos!', 'linear-gradient(135deg,var(--red),#c0392b)');
 };
 
 function renderOrderRows() {
@@ -865,12 +865,6 @@ window.removeOrderRow = function(rowId) {
   updateSummary();
 };
 
-window.editOrderRow = function(rowId) {
-  const inp = $('ac_input_'+rowId);
-  if(inp){ inp.focus(); inp.select(); }
-  else { showToast('Use o campo de item acima para editar'); }
-};
-
 window.deleteOrderRow = function(rowId) {
   orderRows = orderRows.filter(r=>r.id!==rowId);
   renderOrderRows();
@@ -931,36 +925,15 @@ window.confirmOrder = async function(yes) {
   $('oCasa').value=''; $('oResp').value='';
   if($('oObs')) $('oObs').value='';
   orderRows=[];
-  renderOrderRows();
+  $('orderItemsContainer').innerHTML='';
+  addOrderRow();
   $('autoSummary').classList.add('hidden');
   $('blessingMsg').classList.remove('hidden');
   setTimeout(()=>$('blessingMsg').classList.add('hidden'),4000);
 };
 
 // ══════════════════════════════════════════════════
-// TAB 1: PRODUTOS
-// ══════════════════════════════════════════════════
-window.addProduct = async function() {
-  const cod=$('pCod').value.trim(), desc=$('pDesc').value.trim(), un=$('pUn').value;
-  if(!cod||!desc) return;
-  await addDoc(collection(db,'products'),{id:genId(),codigo:cod,descricao:desc,unidade:un});
-  $('pCod').value=''; $('pDesc').value='';
-  showToast('Produto adicionado!');
-};
-window.removeProduct = async function(fbId){ await deleteDoc(doc(db,'products',fbId)); };
-window.renderProducts = function() {
-  const s=$('prodSearch').value.toLowerCase();
-  const f=products.filter(p=>p.codigo.toLowerCase().includes(s)||p.descricao.toLowerCase().includes(s));
-  $('prodTbody').innerHTML=f.slice(0,60).map(p=>`<tr>
-    <td><span class="mono">${p.codigo}</span></td><td>${p.descricao}</td>
-    <td><span class="badge bg-green">${p.unidade}</span></td>
-    <td><button class="btn btn-red btn-sm" onclick="removeProduct('${p._fbId}')">✕</button></td>
-  </tr>`).join('');
-  $('prodCount').textContent=f.length+' produto(s)'+(f.length>60?' (mostrando 60)':'');
-};
-
-// ══════════════════════════════════════════════════
-// TAB 2: DISTRIBUIDORA
+// TAB 1: DISTRIBUIDORA
 // ══════════════════════════════════════════════════
 window.addDistItem = async function() {
   const desc=$('dDesc').value.trim(); if(!desc) return;
@@ -975,7 +948,6 @@ window.addDistItem = async function() {
   showToast('Item adicionado!');
 };
 
-// ── FIX 2: Abrir modal de edição de código/descrição/unidade ──
 window.openEditDist = function(fbId) {
   const item = distItems.find(d=>d._fbId===fbId);
   if(!item) return;
@@ -1034,13 +1006,12 @@ window.showPriceHistory = function(fbId) {
   const item = distItems.find(d=>d._fbId===fbId); if(!item) return;
   const hist = item.priceHistory||[];
   $('priceHistTitle').textContent = '📈 '+item.descricao.slice(0,40);
-  const fmtR=v=>'R$ '+Number(v).toFixed(2).replace('.',',');
   if(!hist.length && !item.valorUnit){
     $('priceHistList').innerHTML='<div style="color:var(--muted);text-align:center;padding:20px">Nenhum histórico registrado</div>';
   } else {
     const all=[...hist.map(h=>({...h,atual:false}))];
     if(item.valorUnit>0) all.push({valor:item.valorUnit,data:new Date().toISOString(),atual:true});
-    $('priceHistList').innerHTML=all.reverse().map((h,i)=>`
+    $('priceHistList').innerHTML=all.reverse().map((h)=>`
       <div class="ph-row">
         <span style="font-size:11px;color:var(--muted);min-width:90px">${fmtDate(h.data)}</span>
         <span class="${h.atual?'ph-new':''}" style="font-weight:700">${fmtR(h.valor)}</span>
@@ -1059,11 +1030,9 @@ window.renderDist = function() {
     const bc=atual>5?'bg-green':atual>0?'bg-yellow':'bg-red';
     const valorUnit = d.valorUnit||0;
     const valorTotal = valorUnit * Math.max(0,atual);
-    const fmtR = v => 'R$ '+v.toFixed(2).replace('.',',');
     return `<tr>
       <td>
-        <!-- NOVO: Botão de editar código/nome do produto -->
-        <button class="btn btn-blue" style="padding:4px 10px;font-size:11px;white-space:nowrap" 
+        <button class="btn btn-blue" style="padding:4px 10px;font-size:11px;white-space:nowrap"
           onclick="openEditDist('${d._fbId}')">✏️ Editar</button>
       </td>
       <td><span class="mono">${d.codigo||'-'}</span></td>
@@ -1087,11 +1056,25 @@ window.renderDist = function() {
       <td style="font-weight:700;color:${valorUnit>0?'var(--cyan)':'var(--muted)'}">${valorUnit>0?fmtR(valorTotal):'—'}</td>
     </tr>`;
   }).join('');
+
+  // NOVO: Totais da distribuidora
+  let totalValorEstoque = 0, totalZero = 0;
+  distItems.forEach(d=>{
+    const pedTot=(d.pedidos||0)+getOrderedQty(d.descricao);
+    const atual=(d.estoqueInicial||0)+(d.entrada||0)-pedTot;
+    const valorUnit = d.valorUnit||0;
+    if(atual > 0 && valorUnit > 0) totalValorEstoque += valorUnit * atual;
+    if(atual <= 0) totalZero++;
+  });
+  const totValEl = $('distTotValor'); if(totValEl) totValEl.textContent = fmtR(totalValorEstoque);
+  const totItEl = $('distTotItens'); if(totItEl) totItEl.textContent = distItems.length+' itens';
+  const totZEl = $('distTotZero'); if(totZEl) totZEl.textContent = totalZero+' itens';
+
   $('distCount').textContent=f.length+' item(s)';
 };
 
 // ══════════════════════════════════════════════════
-// TAB 3: RESUMO
+// TAB 2: RESUMO
 // ══════════════════════════════════════════════════
 window.doLogin = function() {
   if($('pwdInput').value===ADMIN_PASSWORD){
@@ -1120,7 +1103,7 @@ function updateStats() {
     <div class="stat-lbl">${l}</div></div>`).join('');
 }
 window.deleteOrder = async function(fbId) {
-  if(!confirm('Tem certeza que deseja excluir este pedido? Esta ação não pode ser desfeita.')) return;
+  if(!confirm('Tem certeza que deseja excluir este pedido?')) return;
   await deleteDoc(doc(db,'pedidos',fbId));
   showToast('Pedido excluído!','linear-gradient(135deg,var(--red),#c0392b)');
 };
@@ -1185,15 +1168,35 @@ function renderCompTable() {
     });
   });
   const sorted=Object.entries(map).sort((a,b)=>b[1].valor-a[1].valor);
-  const fmtR=v=>v>0?'R$ '+v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,'.').replace('.',','):'—';
   tb.innerHTML=sorted.map(([nome,d],i)=>`<tr>
     <td><span style="font-weight:900;color:${i<3?'var(--yellow)':'var(--muted)'}">${i<3?['🥇','🥈','🥉'][i]:i+1}</span></td>
     <td style="font-weight:700">👧 ${nome}</td>
     <td><span class="badge bg-yellow">${d.pedidos}</span></td>
     <td>${d.itens} un.</td>
-    <td style="font-weight:800;color:var(--green)">${fmtR(d.valor)}</td>
+    <td style="font-weight:800;color:var(--green)">${d.valor>0?fmtR(d.valor):'—'}</td>
   </tr>`).join('');
 }
+
+// NOVO: Exportar resumo para WhatsApp
+window.exportWhatsApp = function() {
+  const fc=$('filterCasa').value, fs=$('filterStatus').value;
+  const filtered=orders.filter(o=>{
+    if(fc&&o.casa!==fc) return false;
+    if(fs&&o.status!==fs) return false;
+    return true;
+  });
+  if(!filtered.length){ showToast('Nenhum pedido para exportar!'); return; }
+  let txt = `📋 *PEDIDOS EBI — ${new Date().toLocaleDateString('pt-BR')}*\n\n`;
+  filtered.forEach(o=>{
+    txt += `*${o.casa}* (${o.responsavel}) — ${o.status.toUpperCase()}\n`;
+    (o.itens||[]).forEach(it=>{ txt += `  • ${it.quantidade}x ${it.descricao}\n`; });
+    if(o.obs) txt += `  💬 ${o.obs}\n`;
+    txt += '\n';
+  });
+  txt += `_Total: ${filtered.length} pedido(s)_`;
+  const url = 'https://wa.me/?text='+encodeURIComponent(txt);
+  window.open(url,'_blank');
+};
 
 window.repeatOrder = function(fbId) {
   const o=orders.find(x=>x._fbId===fbId); if(!o) return;
@@ -1202,8 +1205,7 @@ window.repeatOrder = function(fbId) {
     $('oCasa').value=o.casa;
     if($('oResp')) $('oResp').value=o.responsavel;
     orderRows=[];
-    const cont=$('orderItemsContainer');
-    cont.innerHTML='';
+    $('orderItemsContainer').innerHTML='';
     (o.itens||[]).forEach(it=>{
       const id=genId();
       orderRows.push({id,descricao:it.descricao,codigo:it.codigo||'',quantidade:Number(it.quantidade)||1,selecionado:true});
@@ -1229,6 +1231,7 @@ function checkStockAlerts() {
     bar.classList.add('hidden');
   }
 }
+
 window.exportPDF = function() {
   const fc=$('filterCasa').value, fs=$('filterStatus').value;
   const filtered=orders.filter(o=>{if(fc&&o.casa!==fc)return false;if(fs&&o.status!==fs)return false;return true;});
@@ -1252,7 +1255,7 @@ window.exportPDF = function() {
 };
 
 // ══════════════════════════════════════════════════
-// TAB 4: CADASTRO
+// TAB 3: CADASTRO
 // ══════════════════════════════════════════════════
 window.addChurch = async function() {
   const val=$('churchInput').value.trim().toUpperCase(); if(!val) return;
@@ -1272,7 +1275,7 @@ window.renderChurches = function() {
 };
 
 // ══════════════════════════════════════════════════
-// TAB 5: DASHBOARD
+// TAB 4: DASHBOARD
 // ══════════════════════════════════════════════════
 let dashCharts = {};
 
@@ -1311,7 +1314,6 @@ function renderDashboard() {
 
   const igrejasAtivas = new Set(activeOrders.map(o=>o.casa)).size;
 
-  const fmtR = v => 'R$ '+v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,'.').replace('.',',');
   const kpis = [
     {icon:'📦', label:'Pedidos Este Mês', val:thisMesOrders.length, color:'var(--pink)'},
     {icon:'📋', label:'Total de Pedidos', val:activeOrders.length, color:'var(--cyan)'},
@@ -1341,16 +1343,9 @@ function renderDashboard() {
     type:'bar',
     data:{labels:meses,datasets:[{label:'Pedidos',data:mesesCount,backgroundColor:'rgba(247,37,133,0.7)',borderColor:'rgba(247,37,133,1)',borderWidth:2,borderRadius:6}]},
     options:{
-      responsive:true,
-      layout:{padding:{top:28}},
-      plugins:{
-        legend:{display:false},
-        datalabels:{color:'#fff',font:{weight:'bold',size:13},anchor:'end',align:'top',clamp:true,formatter:v=>v>0?v:''}
-      },
-      scales:{
-        x:{ticks:{color:'#aaa'}},
-        y:{ticks:{color:'#aaa'},beginAtZero:true,grace:'15%'}
-      }
+      responsive:true,layout:{padding:{top:28}},
+      plugins:{legend:{display:false},datalabels:{color:'#fff',font:{weight:'bold',size:13},anchor:'end',align:'top',clamp:true,formatter:v=>v>0?v:''}},
+      scales:{x:{ticks:{color:'#aaa'}},y:{ticks:{color:'#aaa'},beginAtZero:true,grace:'15%'}}
     },
     plugins:[ChartDataLabels]
   });
@@ -1369,22 +1364,10 @@ function renderDashboard() {
     type:'bar',
     data:{labels:mesesAno,datasets:[{label:'Gastos (R$)',data:gastosAno,backgroundColor:'rgba(6,214,160,0.7)',borderColor:'rgba(6,214,160,1)',borderWidth:2,borderRadius:6}]},
     options:{
-      responsive:true,
-      layout:{padding:{top:32}},
-      plugins:{
-        legend:{display:false},
-        datalabels:{
-          color:'#fff',font:{weight:'bold',size:10},anchor:'end',align:'top',clamp:true,
-          formatter:v=>v>0?'R$\n'+v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}):''
-        }
-      },
-      scales:{
-        x:{ticks:{color:'#aaa'}},
-        y:{
-          ticks:{color:'#aaa',callback:v=>'R$ '+v.toLocaleString('pt-BR')},
-          beginAtZero:true,grace:'15%'
-        }
-      }
+      responsive:true,layout:{padding:{top:32}},
+      plugins:{legend:{display:false},datalabels:{color:'#fff',font:{weight:'bold',size:10},anchor:'end',align:'top',clamp:true,
+        formatter:v=>v>0?'R$\n'+v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}):''}},
+      scales:{x:{ticks:{color:'#aaa'}},y:{ticks:{color:'#aaa',callback:v=>'R$ '+v.toLocaleString('pt-BR')},beginAtZero:true,grace:'15%'}}
     },
     plugins:[ChartDataLabels]
   });
@@ -1397,17 +1380,12 @@ function renderDashboard() {
   dashCharts['igreja'] = new Chart($('chartIgreja'),{
     type:'doughnut',
     data:{labels:igSorted.map(e=>e[0]),datasets:[{data:igSorted.map(e=>e[1]),backgroundColor:igColors,borderWidth:2,borderColor:'#0d1b2a'}]},
-    options:{
-      responsive:true,
-      plugins:{
-        legend:{position:'right',labels:{color:'#ccc',font:{size:11}}},
-        datalabels:{color:'#fff',font:{weight:'bold',size:12},formatter:(v,ctx)=>{
-          const total=ctx.dataset.data.reduce((a,b)=>a+b,0);
-          const pct=Math.round(v/total*100);
-          return pct>5?v+'\n('+pct+'%)':'';
-        }}
-      }
-    },
+    options:{responsive:true,plugins:{legend:{position:'right',labels:{color:'#ccc',font:{size:11}}},
+      datalabels:{color:'#fff',font:{weight:'bold',size:12},formatter:(v,ctx)=>{
+        const total=ctx.dataset.data.reduce((a,b)=>a+b,0);
+        const pct=Math.round(v/total*100);
+        return pct>5?v+'\n('+pct+'%)':'';
+      }}}},
     plugins:[ChartDataLabels]
   });
 
@@ -1416,15 +1394,9 @@ function renderDashboard() {
   dashCharts['topItens'] = new Chart($('chartTopItens'),{
     type:'bar',
     data:{labels:top10.map(e=>e[0].slice(0,22)),datasets:[{label:'Qtd',data:top10.map(e=>e[1]),backgroundColor:'rgba(76,201,240,0.7)',borderColor:'rgba(76,201,240,1)',borderWidth:2,borderRadius:6}]},
-    options:{
-      indexAxis:'y',
-      responsive:true,
-      plugins:{
-        legend:{display:false},
-        datalabels:{color:'#fff',font:{weight:'bold',size:12},anchor:'end',align:'right',formatter:v=>v}
-      },
-      scales:{x:{ticks:{color:'#aaa'}},y:{ticks:{color:'#aaa',font:{size:10}}}}
-    },
+    options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false},
+      datalabels:{color:'#fff',font:{weight:'bold',size:12},anchor:'end',align:'right',formatter:v=>v}},
+      scales:{x:{ticks:{color:'#aaa'}},y:{ticks:{color:'#aaa',font:{size:10}}}}},
     plugins:[ChartDataLabels]
   });
 
@@ -1435,18 +1407,13 @@ function renderDashboard() {
   dashCharts['status'] = new Chart($('chartStatus'),{
     type:'pie',
     data:{labels:['Pendente','Entregue','Cancelado'],datasets:[{data:[pend,entr,canc],backgroundColor:['rgba(255,214,10,0.85)','rgba(6,214,160,0.85)','rgba(239,35,60,0.85)'],borderWidth:2,borderColor:'#0d1b2a'}]},
-    options:{
-      responsive:true,
-      plugins:{
-        legend:{position:'bottom',labels:{color:'#ccc'}},
-        datalabels:{color:'#111',font:{weight:'bold',size:13},formatter:(v,ctx)=>{
-          if(v===0) return '';
-          const total=ctx.dataset.data.reduce((a,b)=>a+b,0);
-          const pct=Math.round(v/total*100);
-          return v+'\n('+pct+'%)';
-        }}
-      }
-    },
+    options:{responsive:true,plugins:{legend:{position:'bottom',labels:{color:'#ccc'}},
+      datalabels:{color:'#111',font:{weight:'bold',size:13},formatter:(v,ctx)=>{
+        if(v===0) return '';
+        const total=ctx.dataset.data.reduce((a,b)=>a+b,0);
+        const pct=Math.round(v/total*100);
+        return v+'\n('+pct+'%)';
+      }}}},
     plugins:[ChartDataLabels]
   });
 
@@ -1473,18 +1440,10 @@ function renderDashboard() {
   dashCharts['igrejaValor'] = new Chart($('chartIgrejaValor'),{
     type:'bar',
     data:{labels:igValSorted.map(e=>e[0]),datasets:[{label:'R$',data:igValSorted.map(e=>parseFloat(e[1].toFixed(2))),backgroundColor:igValColors,borderWidth:2,borderRadius:8}]},
-    options:{
-      responsive:true,layout:{padding:{top:32}},
-      plugins:{
-        legend:{display:false},
-        datalabels:{color:'#fff',font:{weight:'bold',size:11},anchor:'end',align:'top',clamp:true,
-          formatter:v=>v>0?'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}):''}
-      },
-      scales:{
-        x:{ticks:{color:'#aaa'}},
-        y:{ticks:{color:'#aaa',callback:v=>'R$ '+v.toLocaleString('pt-BR')},beginAtZero:true,grace:'15%'}
-      }
-    },
+    options:{responsive:true,layout:{padding:{top:32}},
+      plugins:{legend:{display:false},datalabels:{color:'#fff',font:{weight:'bold',size:11},anchor:'end',align:'top',clamp:true,
+        formatter:v=>v>0?'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}):''}},
+      scales:{x:{ticks:{color:'#aaa'}},y:{ticks:{color:'#aaa',callback:v=>'R$ '+v.toLocaleString('pt-BR')},beginAtZero:true,grace:'15%'}}},
     plugins:[ChartDataLabels]
   });
 }
@@ -1497,7 +1456,7 @@ initFirebase().then(()=>{
   churches=INIT_CHURCHES.map((n,i)=>({id:'c'+i,nome:n,_fbId:'c'+i}));
   products=INIT_PRODUCTS.map((p,i)=>({...p,id:'p'+i,_fbId:'p'+i}));
   distItems=INIT_DIST.map(d=>({...d,_fbId:d.id}));
-  renderChurches(); renderProducts(); renderDist(); populateChurchSelect();
+  renderChurches(); renderDist(); populateChurchSelect();
   addOrderRow();
   showToast('⚠️ Operando offline');
 });
