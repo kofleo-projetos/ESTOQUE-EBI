@@ -196,6 +196,56 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
 .btn-whatsapp{background:rgba(37,211,102,.2);color:#25d366;border:1px solid rgba(37,211,102,.3);padding:6px 12px;font-size:12px}
 .btn-whatsapp:hover{background:rgba(37,211,102,.35)}
 
+/* GROUPED ORDERS */
+.group-card{background:linear-gradient(135deg,rgba(247,37,133,.08),rgba(67,97,238,.08));
+  border:2px solid rgba(247,37,133,.35);border-radius:18px;padding:20px;margin-bottom:20px}
+.group-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.group-title{font-family:'Fredoka One',cursive;font-size:18px;color:var(--pink)}
+.group-badge{background:rgba(247,37,133,.2);color:var(--pink);border:1px solid rgba(247,37,133,.35);
+  border-radius:20px;padding:3px 12px;font-size:12px;font-weight:800}
+.group-items-merged{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;
+  padding:12px;background:rgba(255,255,255,.04);border-radius:10px;border:1px solid rgba(255,255,255,.08)}
+.group-sub-orders{display:flex;flex-direction:column;gap:8px;border-top:1px solid rgba(255,255,255,.1);padding-top:12px}
+.group-sub-order{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);
+  border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.group-sub-info{font-size:13px;color:var(--muted)}
+
+/* UNREGISTERED ITEM FLAG */
+.item-nao-cad{display:inline-flex;align-items:center;gap:4px;background:rgba(255,214,10,.15);
+  border:1px solid rgba(255,214,10,.4);border-radius:8px;padding:3px 10px;font-size:11px;
+  font-weight:800;color:var(--yellow);cursor:pointer;margin-top:4px;transition:all .2s}
+.item-nao-cad:hover{background:rgba(255,214,10,.3)}
+
+/* UNREGISTERED ITEM ROW IN ORDER SUMMARY */
+.sum-item-nao-cad{background:rgba(255,214,10,.08);border:1px solid rgba(255,214,10,.35);border-radius:10px;
+  padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.sum-nao-cad-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(255,214,10,.2);
+  border:1px solid rgba(255,214,10,.45);border-radius:6px;padding:2px 9px;font-size:11px;font-weight:800;color:var(--yellow)}
+
+/* UNREGISTERED ITEMS ALERT — RESUMO */
+.nao-cad-alert-bar{background:linear-gradient(135deg,rgba(255,214,10,.15),rgba(247,37,133,.08));
+  border:2px solid rgba(255,214,10,.5);border-radius:16px;padding:16px 20px;margin-bottom:20px;
+  animation:popIn .35s ease}
+.nao-cad-alert-header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.nao-cad-alert-icon{font-size:26px;animation:bounce 2s ease-in-out infinite}
+.nao-cad-alert-title{font-family:'Fredoka One',cursive;font-size:17px;color:var(--yellow)}
+.nao-cad-alert-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.nao-cad-list{display:flex;flex-direction:column;gap:6px}
+.nao-cad-row{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;
+  background:rgba(255,214,10,.08);border:1px solid rgba(255,214,10,.25);border-radius:10px;
+  padding:10px 14px}
+.nao-cad-name{font-weight:800;color:var(--yellow);font-size:14px}
+.nao-cad-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.nao-cad-val{font-size:12px;color:var(--green);font-weight:700;white-space:nowrap}
+
+/* DELETE CONFIRM MODAL */
+.delete-order-preview{background:rgba(239,35,60,.08);border:1px solid rgba(239,35,60,.25);
+  border-radius:10px;padding:12px;margin:12px 0;text-align:left;font-size:13px;max-height:180px;overflow-y:auto}
+
+/* EDIT ORDER MODAL */
+.edit-order-item-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;
+  background:rgba(255,255,255,.04);border-radius:8px;padding:8px 10px;flex-wrap:wrap}
+
 /* PRINT STYLES */
 @media print{
   .blobs,.tab-btn,nav,header,.btn{display:none!important}
@@ -257,6 +307,7 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
         <div class="btn-grp">
           <button class="btn btn-sec" onclick="addOrderRow()">+ Adicionar Item</button>
           <button class="btn btn-sec" onclick="clearAllRows()" style="color:var(--red);border-color:rgba(239,35,60,.3)">🗑️ Limpar Tudo</button>
+          <button class="btn btn-sec" onclick="openItemNaoCadModal()" style="color:var(--yellow);border-color:rgba(255,214,10,.35)">⚠️ Item não cadastrado</button>
         </div>
 
         <div class="fg" style="margin-top:16px">
@@ -353,6 +404,18 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
               <button class="btn btn-whatsapp btn-sm" onclick="exportWhatsApp()">📱 WhatsApp</button>
             </div>
           </div>
+          <!-- ALERTA: ITENS NÃO CADASTRADOS NA DISTRIBUIDORA -->
+          <div id="naoCadAlertBar" class="nao-cad-alert-bar hidden">
+            <div class="nao-cad-alert-header">
+              <div class="nao-cad-alert-icon">⚠️</div>
+              <div>
+                <div class="nao-cad-alert-title">Itens Não Cadastrados na Distribuidora</div>
+                <div class="nao-cad-alert-sub" id="naoCadAlertSub">Estes itens foram informados nos pedidos mas ainda não estão cadastrados na distribuidora.</div>
+              </div>
+            </div>
+            <div class="nao-cad-list" id="naoCadList"></div>
+          </div>
+
           <div class="stats-grid" id="statsGrid"></div>
           <div class="search-row">
             <select id="filterCasa" onchange="renderOrders()"><option value="">Todas as casas</option></select>
@@ -528,6 +591,79 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
   </div>
 </div>
 
+<!-- ══ MODAL: EXCLUIR PEDIDO (seguro) ══ -->
+<div id="deleteOrderModal" class="modal-ov hidden">
+  <div class="modal-box">
+    <div class="modal-icon">🗑️</div>
+    <div class="modal-title" style="color:var(--red)">Excluir Pedido?</div>
+    <div class="modal-sub">Esta ação é <strong style="color:var(--red)">irreversível</strong>. O pedido abaixo será permanentemente removido.</div>
+    <div id="deleteOrderPreview" class="delete-order-preview"></div>
+    <div style="margin-bottom:16px;font-size:13px;color:var(--muted)">Digite <strong style="color:var(--red)">EXCLUIR</strong> para confirmar:</div>
+    <input type="text" id="deleteConfirmInput" placeholder="Digite EXCLUIR aqui..." style="text-align:center;font-weight:800;letter-spacing:1px;margin-bottom:16px"/>
+    <div class="modal-btns">
+      <button class="btn btn-red" onclick="confirmDeleteOrder()" style="background:rgba(239,35,60,.35)">🗑️ Confirmar Exclusão</button>
+      <button class="btn btn-sec" onclick="closeDeleteOrderModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: EDITAR PEDIDO ══ -->
+<div id="editOrderModal" class="modal-ov hidden">
+  <div class="modal-box" style="max-width:560px;text-align:left">
+    <div class="modal-icon">✏️</div>
+    <div class="modal-title">Editar Pedido</div>
+    <input type="hidden" id="editOrderFbId"/>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+      <div class="modal-field">
+        <label class="lbl">Casa de Oração</label>
+        <select id="editOrderCasa"></select>
+      </div>
+      <div class="modal-field">
+        <label class="lbl">Responsável</label>
+        <input type="text" id="editOrderResp" placeholder="Nome"/>
+      </div>
+    </div>
+    <div class="modal-field">
+      <label class="lbl">Itens do Pedido</label>
+      <div id="editOrderItemsContainer"></div>
+      <button class="btn btn-sec btn-sm" style="margin-top:8px" onclick="addEditOrderItem()">+ Adicionar Item</button>
+    </div>
+    <div class="modal-field" style="margin-top:12px">
+      <label class="lbl">Observação</label>
+      <textarea id="editOrderObs" rows="2" style="resize:vertical"></textarea>
+    </div>
+    <div class="modal-btns" style="margin-top:20px">
+      <button class="btn btn-primary" onclick="saveEditOrder()">💾 Salvar Alterações</button>
+      <button class="btn btn-sec" onclick="closeEditOrderModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: ITEM NÃO CADASTRADO ══ -->
+<div id="itemNaoCadModal" class="modal-ov hidden">
+  <div class="modal-box" style="max-width:480px;text-align:left">
+    <div class="modal-icon">🔍</div>
+    <div class="modal-title">Item Não Cadastrado</div>
+    <div class="modal-sub" style="margin-bottom:0">Preencha as informações deste item para que possa ser analisado e futuramente incluído na distribuidora.</div>
+    <div class="modal-field" style="margin-top:16px">
+      <label class="lbl">Nome do Item</label>
+      <input type="text" id="itemNaoCadNome" placeholder="Nome completo do produto"/>
+    </div>
+    <div class="modal-field">
+      <label class="lbl">URL onde foi encontrado</label>
+      <input type="url" id="itemNaoCadUrl" placeholder="https://..."/>
+    </div>
+    <div class="modal-field">
+      <label class="lbl">Valor Estimado (R$)</label>
+      <input type="number" id="itemNaoCadValor" placeholder="0,00" step="0.01" min="0"/>
+    </div>
+    <div class="modal-btns" style="margin-top:20px">
+      <button class="btn btn-primary" onclick="saveItemNaoCad()">📋 Registrar Informação</button>
+      <button class="btn btn-sec" onclick="closeItemNaoCadModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="toast hidden"></div>
 
 <!-- Chart.js -->
@@ -565,6 +701,7 @@ const db = getFirestore(app);
 const ADMIN_PASSWORD = "amem";
 let churches = [], products = [], distItems = [], orders = [];
 let orderRows = [];
+let itensPedidoNaoCad = []; // itens não cadastrados informados manualmente no pedido atual
 
 // ── SEED DATA ──────────────────────────────────────
 const INIT_CHURCHES = ["JD. VITÓRIA","CRESCIUMA","SERPA","VERA TEREZA","LARANJEIRAS","VILA ROSINA","MORRO GRANDE","JARDIM MARCELINO"];
@@ -705,7 +842,7 @@ async function initFirebase() {
   });
   onSnapshot(collection(db,'pedidos'), snap=>{
     orders = snap.docs.map(d=>({...d.data(),_fbId:d.id})).sort((a,b)=>new Date(b.data)-new Date(a.data));
-    renderOrders(); updateStats(); checkStockAlerts();
+    renderOrders(); updateStats(); checkStockAlerts(); checkNaoCadastradosAlert();
     if(!$('dashContent').classList.contains('hidden')) renderDashboard();
   });
 }
@@ -739,6 +876,7 @@ window.addOrderRow = function() {
 window.clearAllRows = function() {
   if(orderRows.length === 0) return;
   orderRows = [];
+  itensPedidoNaoCad = [];
   const cont = $('orderItemsContainer');
   cont.innerHTML = '';
   addOrderRow();
@@ -840,6 +978,36 @@ window.selectAC = function(rowId, descricao, codigo) {
   updateSummary();
 };
 
+// ── MODAL: ITEM NÃO CADASTRADO ──
+window.openItemNaoCadModal = function() {
+  $('itemNaoCadNome').value = '';
+  $('itemNaoCadUrl').value = '';
+  $('itemNaoCadValor').value = '';
+  if($('itemNaoCadQtd')) $('itemNaoCadQtd').value = '1';
+  $('itemNaoCadModal').classList.remove('hidden');
+  setTimeout(()=>$('itemNaoCadNome').focus(), 100);
+};
+window.closeItemNaoCadModal = function() { $('itemNaoCadModal').classList.add('hidden'); };
+window.saveItemNaoCad = async function() {
+  const nome = $('itemNaoCadNome').value.trim();
+  const url  = $('itemNaoCadUrl').value.trim();
+  const valor= parseFloat($('itemNaoCadValor').value)||0;
+  const qty  = Math.max(1, parseInt($('itemNaoCadQtd')?.value)||1);
+  if(!nome){ showToast('Informe o nome do item!'); return; }
+  // Registra no Firebase
+  try {
+    await addDoc(collection(db,'itens_nao_cadastrados'),{
+      nome, url, valorEstimado:valor,
+      data:new Date().toISOString()
+    });
+  } catch(e) {}
+  // Adiciona ao pedido atual para aparecer no resumo
+  itensPedidoNaoCad.push({ id: genId(), nome, quantidade: qty, valorEstimado: valor });
+  showToast('Item adicionado ao pedido! ✅','linear-gradient(135deg,var(--yellow),#e67e00)');
+  closeItemNaoCadModal();
+  updateSummary();
+};
+
 window.closeAC = function(rowId) {
   const l=$('ac_list_'+rowId); if(l) l.classList.remove('open');
 };
@@ -878,11 +1046,14 @@ window.updateSummary = function() {
   const sumBox = $('autoSummary');
   if(!sumBox) return;
 
-  if(!valid.length){ sumBox.classList.add('hidden'); return; }
+  const hasNaoCad = itensPedidoNaoCad.length > 0;
+  if(!valid.length && !hasNaoCad){ sumBox.classList.add('hidden'); return; }
 
   $('sumCasa').textContent = casa || '—';
   $('sumResp').textContent = resp || '—';
-  $('sumItemsList').innerHTML = valid.map(r=>`
+
+  // Itens cadastrados normais
+  const htmlCad = valid.map(r=>`
     <div class="sum-item">
       <div class="sum-item-info">
         <span class="sum-qty">${r.quantidade}x</span>
@@ -896,6 +1067,23 @@ window.updateSummary = function() {
         <button class="btn btn-red" onclick="deleteOrderRow('${r.id}')">✕ Excluir</button>
       </div>
     </div>`).join('');
+
+  // Itens não cadastrados
+  const htmlNaoCad = itensPedidoNaoCad.map(n=>`
+    <div class="sum-item-nao-cad">
+      <div class="sum-item-info">
+        <span class="sum-qty" style="background:rgba(255,214,10,.25);color:var(--yellow);border-color:rgba(255,214,10,.4)">${n.quantidade}x</span>
+        <div>
+          <div class="sum-desc">${n.nome}</div>
+          <span class="sum-nao-cad-badge">⚠️ Não cadastrado</span>
+        </div>
+      </div>
+      <div class="sum-actions">
+        <button class="btn btn-red" onclick="removeNaoCadItem('${n.id}')">✕ Excluir</button>
+      </div>
+    </div>`).join('');
+
+  $('sumItemsList').innerHTML = htmlCad + htmlNaoCad;
   sumBox.classList.remove('hidden');
 };
 
@@ -904,11 +1092,16 @@ window.focusRow = function(rowId) {
   if(inp){ inp.scrollIntoView({behavior:'smooth',block:'center'}); inp.focus(); inp.select(); }
 };
 
+window.removeNaoCadItem = function(id) {
+  itensPedidoNaoCad = itensPedidoNaoCad.filter(n => n.id !== id);
+  updateSummary();
+};
+
 window.showConfirmModal = function() {
   const casa=$('oCasa').value, resp=$('oResp').value.trim();
   const valid=orderRows.filter(r=>r.selecionado&&r.descricao&&r.quantidade>0);
   if(!casa||!resp){showToast('Preencha Igreja e Responsável!'); return;}
-  if(!valid.length){showToast('Selecione pelo menos um item da lista!'); return;}
+  if(!valid.length && !itensPedidoNaoCad.length){showToast('Selecione pelo menos um item ou adicione um item não cadastrado!'); return;}
   $('confirmModal').classList.remove('hidden');
 };
 
@@ -918,13 +1111,16 @@ window.confirmOrder = async function(yes) {
   const casa=$('oCasa').value, resp=$('oResp').value.trim();
   const obs=($('oObs')?.value||'').trim();
   const valid=orderRows.filter(r=>r.selecionado&&r.descricao&&r.quantidade>0);
+  const itensNormais = valid.map(r=>({descricao:r.descricao,codigo:r.codigo,quantidade:r.quantidade}));
+  const itensNaoCadSalvos = itensPedidoNaoCad.map(n=>({descricao:n.nome,codigo:'',quantidade:n.quantidade,naoCadastrado:true}));
   const order={id:genId(),casa,responsavel:resp,
-    itens:valid.map(r=>({descricao:r.descricao,codigo:r.codigo,quantidade:r.quantidade})),
+    itens:[...itensNormais,...itensNaoCadSalvos],
     data:new Date().toISOString(),status:'pendente',obs:obs||''};
   await addDoc(collection(db,'pedidos'),order);
   $('oCasa').value=''; $('oResp').value='';
   if($('oObs')) $('oObs').value='';
   orderRows=[];
+  itensPedidoNaoCad=[];
   $('orderItemsContainer').innerHTML='';
   addOrderRow();
   $('autoSummary').classList.add('hidden');
@@ -1080,7 +1276,7 @@ window.doLogin = function() {
   if($('pwdInput').value===ADMIN_PASSWORD){
     $('resumoLogin').classList.add('hidden');
     $('resumoContent').classList.remove('hidden');
-    renderOrders(); updateStats(); populateCasaFilter();
+    renderOrders(); updateStats(); populateCasaFilter(); checkNaoCadastradosAlert();
   } else {
     $('pwdErr').classList.remove('hidden');
     setTimeout(()=>$('pwdErr').classList.add('hidden'),2000);
@@ -1102,40 +1298,318 @@ function updateStats() {
     <div class="stat-num" style="color:${colors[i]}">${vals[i]}</div>
     <div class="stat-lbl">${l}</div></div>`).join('');
 }
-window.deleteOrder = async function(fbId) {
-  if(!confirm('Tem certeza que deseja excluir este pedido?')) return;
-  await deleteDoc(doc(db,'pedidos',fbId));
+// ── ALERTA: ITENS NÃO CADASTRADOS NA DISTRIBUIDORA (aba Resumo) ──
+function checkNaoCadastradosAlert() {
+  const bar = $('naoCadAlertBar');
+  const listEl = $('naoCadList');
+  const subEl = $('naoCadAlertSub');
+  if (!bar || !listEl) return;
+
+  // Coleta todos os itens enviados nos pedidos (não cancelados)
+  const activeOrds = orders.filter(o => o.status !== 'cancelado');
+  const distDescs = new Set(distItems.map(d => d.descricao.trim().toLowerCase()));
+
+  // Busca itens nos pedidos que NÃO existem na distribuidora
+  const naoCadMap = {}; // descricao -> { quantidade, pedidos, igrejas }
+  activeOrds.forEach(o => {
+    (o.itens || []).forEach(it => {
+      const desc = (it.descricao || '').trim();
+      if (!desc) return;
+      if (!distDescs.has(desc.toLowerCase())) {
+        if (!naoCadMap[desc]) naoCadMap[desc] = { quantidade: 0, pedidos: 0, igrejas: new Set() };
+        naoCadMap[desc].quantidade += Number(it.quantidade || 1);
+        naoCadMap[desc].pedidos++;
+        naoCadMap[desc].igrejas.add(o.casa);
+      }
+    });
+  });
+
+  const naoCadEntries = Object.entries(naoCadMap);
+
+  if (!naoCadEntries.length) {
+    bar.classList.add('hidden');
+    return;
+  }
+
+  if (subEl) subEl.textContent = naoCadEntries.length + ' item(s) foram pedidos pelas igrejas mas ainda não estão cadastrados na distribuidora.';
+
+  // Mapa desc -> lista de {casa, fbId} para botões de ir ao pedido
+  const descToPedidos = {};
+  activeOrds.forEach(o => {
+    (o.itens || []).forEach(it => {
+      const desc = (it.descricao || '').trim();
+      if (!desc || distDescs.has(desc.toLowerCase())) return;
+      if (!descToPedidos[desc]) descToPedidos[desc] = [];
+      if (!descToPedidos[desc].some(x => x.fbId === o._fbId))
+        descToPedidos[desc].push({ casa: o.casa, fbId: o._fbId });
+    });
+  });
+
+  listEl.innerHTML = naoCadEntries
+    .sort((a, b) => b[1].quantidade - a[1].quantidade)
+    .map(([desc, info]) => {
+      const pedidosRelac = descToPedidos[desc] || [];
+      const casaBtns = pedidosRelac.map(p =>
+        '<button onclick="irParaPedido(\'' + p.fbId + '\')" style="display:inline-flex;align-items:center;gap:5px;' +
+        'background:rgba(67,97,238,.2);color:var(--cyan);border:1px solid rgba(67,97,238,.35);' +
+        'border-radius:8px;padding:3px 10px;font-size:11px;font-weight:800;cursor:pointer;margin:2px 4px 2px 0">' +
+        '🏠 ' + p.casa + ' <span style="font-size:10px;opacity:.7">→ ver pedido</span></button>'
+      ).join('');
+      return '<div class="nao-cad-row">' +
+        '<div style="flex:1">' +
+          '<div class="nao-cad-name">📦 ' + desc + '</div>' +
+          '<div style="margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:2px">' +
+            '<span style="font-size:11px;color:var(--muted);margin-right:4px">Pedido por:</span>' +
+            casaBtns +
+          '</div>' +
+        '</div>' +
+        '<div style="text-align:right;min-width:100px">' +
+          '<div class="nao-cad-val">' + info.quantidade + ' un. pedidas</div>' +
+          '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + info.pedidos + ' pedido(s)</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+  bar.classList.remove('hidden');
+}
+
+// ── IR PARA PEDIDO NA ABA RESUMO ──
+window.irParaPedido = function(fbId) {
+  // Garante que o conteúdo do resumo está visível (já logado)
+  const resumoContent = $('resumoContent');
+  if (!resumoContent || resumoContent.classList.contains('hidden')) {
+    showToast('Faça login na aba Resumo primeiro! 🔒', 'linear-gradient(135deg,var(--yellow),#e67e00)');
+    showTab(2);
+    return;
+  }
+  showTab(2);
+  setTimeout(() => {
+    // Procura o elemento do pedido e faz scroll até ele
+    const allCards = document.querySelectorAll('#ordersContainer [data-fbid]');
+    let found = null;
+    allCards.forEach(el => { if (el.getAttribute('data-fbid') === fbId) found = el; });
+    if (found) {
+      found.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      found.style.outline = '2px solid var(--yellow)';
+      found.style.boxShadow = '0 0 20px rgba(255,214,10,0.4)';
+      setTimeout(() => { found.style.outline = ''; found.style.boxShadow = ''; }, 2500);
+    } else {
+      // Limpa filtros e tenta novamente
+      if ($('filterCasa')) $('filterCasa').value = '';
+      if ($('filterStatus')) $('filterStatus').value = '';
+      if ($('orderSearch')) $('orderSearch').value = '';
+      renderOrders();
+      setTimeout(() => {
+        const allCards2 = document.querySelectorAll('#ordersContainer [data-fbid]');
+        allCards2.forEach(el => {
+          if (el.getAttribute('data-fbid') === fbId) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.style.outline = '2px solid var(--yellow)';
+            el.style.boxShadow = '0 0 20px rgba(255,214,10,0.4)';
+            setTimeout(() => { el.style.outline = ''; el.style.boxShadow = ''; }, 2500);
+          }
+        });
+      }, 300);
+    }
+  }, 150);
+};
+
+// ── DELETE ORDER (seguro) ──
+let _deleteTargetFbId = null;
+window.openDeleteOrderModal = function(fbId) {
+  const order = orders.find(o=>o._fbId===fbId); if(!order) return;
+  _deleteTargetFbId = fbId;
+  $('deleteConfirmInput').value = '';
+  $('deleteOrderPreview').innerHTML = `
+    <div style="font-weight:800;color:var(--pink);margin-bottom:6px">👧 ${order.casa}</div>
+    <div style="color:var(--muted);font-size:12px;margin-bottom:8px">👤 ${order.responsavel} · 📅 ${fmtDate(order.data)}</div>
+    ${(order.itens||[]).map(it=>`<div style="padding:2px 0"><span style="color:var(--pink);font-weight:900">${it.quantidade}x</span> ${it.descricao}</div>`).join('')}
+    ${order.obs?`<div style="margin-top:6px;color:var(--cyan);font-size:12px">💬 ${order.obs}</div>`:''}`;
+  $('deleteOrderModal').classList.remove('hidden');
+  setTimeout(()=>$('deleteConfirmInput').focus(), 150);
+};
+window.closeDeleteOrderModal = function() {
+  $('deleteOrderModal').classList.add('hidden');
+  _deleteTargetFbId = null;
+};
+window.confirmDeleteOrder = async function() {
+  if($('deleteConfirmInput').value.trim().toUpperCase() !== 'EXCLUIR') {
+    showToast('⚠️ Digite EXCLUIR para confirmar!','linear-gradient(135deg,var(--yellow),#e67e00)');
+    $('deleteConfirmInput').focus(); return;
+  }
+  if(!_deleteTargetFbId) return;
+  await deleteDoc(doc(db,'pedidos',_deleteTargetFbId));
+  closeDeleteOrderModal();
   showToast('Pedido excluído!','linear-gradient(135deg,var(--red),#c0392b)');
 };
+
+// ── UPDATE ORDER STATUS ──
 window.updateOrderStatus = async function(fbId, status) {
   const upd={status};
   if(status==='entregue') upd.dataEntrega=new Date().toISOString();
   await updateDoc(doc(db,'pedidos',fbId),upd);
   showToast('Status atualizado!', status==='entregue'?'linear-gradient(135deg,var(--green),#11998e)':'linear-gradient(135deg,var(--red),#c0392b)');
 };
+
+// ── UPDATE STATUS IN BULK (grupo) ──
+window.updateGroupStatus = async function(casa, status) {
+  const pending = orders.filter(o=>o.casa===casa && o.status==='pendente');
+  for(const o of pending){
+    const upd={status};
+    if(status==='entregue') upd.dataEntrega=new Date().toISOString();
+    await updateDoc(doc(db,'pedidos',o._fbId),upd);
+  }
+  showToast(`${pending.length} pedido(s) marcado(s) como ${status}!`,
+    status==='entregue'?'linear-gradient(135deg,var(--green),#11998e)':'linear-gradient(135deg,var(--red),#c0392b)');
+};
+
+// ── EDIT ORDER ──
+let editOrderItems = [];
+window.openEditOrderModal = function(fbId) {
+  const order = orders.find(o=>o._fbId===fbId); if(!order) return;
+  $('editOrderFbId').value = fbId;
+  // populate church select
+  const cs=$('editOrderCasa');
+  cs.innerHTML = churches.map(c=>`<option value="${c.nome}"${c.nome===order.casa?' selected':''}>${c.nome}</option>`).join('');
+  $('editOrderResp').value = order.responsavel||'';
+  $('editOrderObs').value = order.obs||'';
+  editOrderItems = (order.itens||[]).map(it=>({...it, _id:genId()}));
+  renderEditOrderItems();
+  $('editOrderModal').classList.remove('hidden');
+};
+window.closeEditOrderModal = function() { $('editOrderModal').classList.add('hidden'); };
+function renderEditOrderItems() {
+  $('editOrderItemsContainer').innerHTML = editOrderItems.map((it,i)=>`
+    <div class="edit-order-item-row" id="eoi_${it._id}">
+      <div style="flex:1;min-width:140px">
+        <input type="text" value="${it.descricao.replace(/"/g,'&quot;')}"
+          style="margin-bottom:0" oninput="editOrderItems[${i}].descricao=this.value"
+          placeholder="Descrição do item"/>
+      </div>
+      <div style="width:70px">
+        <input type="number" min="1" value="${it.quantidade}"
+          style="margin-bottom:0" oninput="editOrderItems[${i}].quantidade=Math.max(1,Number(this.value)||1)"
+          placeholder="Qtd"/>
+      </div>
+      <button class="btn btn-red btn-sm" onclick="removeEditOrderItem(${i})" style="align-self:center">✕</button>
+    </div>`).join('');
+}
+window.addEditOrderItem = function() {
+  editOrderItems.push({descricao:'',quantidade:1,codigo:'',_id:genId()});
+  renderEditOrderItems();
+};
+window.removeEditOrderItem = function(i) {
+  editOrderItems.splice(i,1);
+  renderEditOrderItems();
+};
+window.saveEditOrder = async function() {
+  const fbId = $('editOrderFbId').value;
+  const casa = $('editOrderCasa').value;
+  const resp = $('editOrderResp').value.trim();
+  const obs  = $('editOrderObs').value.trim();
+  const itens = editOrderItems.filter(it=>it.descricao.trim()).map(it=>({
+    descricao:it.descricao.trim(), quantidade:Number(it.quantidade)||1, codigo:it.codigo||''
+  }));
+  if(!casa||!resp){ showToast('Preencha Igreja e Responsável!'); return; }
+  if(!itens.length){ showToast('Adicione ao menos um item!'); return; }
+  await updateDoc(doc(db,'pedidos',fbId),{casa,responsavel:resp,obs,itens});
+  closeEditOrderModal();
+  showToast('Pedido atualizado! ✅','linear-gradient(135deg,var(--green),#11998e)');
+};
+
+// ── RENDER ORDERS (com agrupamento de pendentes) ──
 window.renderOrders = function() {
   const cont=$('ordersContainer'); if(!cont) return;
   const fc=$('filterCasa')?.value||'', fs=$('filterStatus')?.value||'', sr=($('orderSearch')?.value||'').toLowerCase();
   const filtered=orders.filter(o=>{
     if(fc&&o.casa!==fc) return false;
     if(fs&&o.status!==fs) return false;
-    if(sr&&!o.casa.toLowerCase().includes(sr)&&!o.responsavel.toLowerCase().includes(sr)) return false;
+    if(sr&&!o.casa.toLowerCase().includes(sr)&&!(o.responsavel||'').toLowerCase().includes(sr)) return false;
     return true;
   });
-  if(!filtered.length){ cont.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)"><div style="font-size:48px">📭</div><div>Nenhum pedido encontrado</div></div>'; return; }
-  cont.innerHTML=filtered.map(o=>{
+  if(!filtered.length){ cont.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)"><div style="font-size:48px">📭</div><div>Nenhum pedido encontrado</div></div>'; renderCompTable(); return; }
+
+  // ── Agrupar pendentes da mesma igreja ──
+  const pendentesMap = {};   // casa -> [orders]
+  const naoAgrupados = [];   // entregues, cancelados, ou pendentes únicos (após separar)
+  filtered.forEach(o=>{
+    if(o.status==='pendente'){
+      if(!pendentesMap[o.casa]) pendentesMap[o.casa]=[];
+      pendentesMap[o.casa].push(o);
+    } else {
+      naoAgrupados.push(o);
+    }
+  });
+  // Se a igreja tem somente 1 pedido pendente, vai para naoAgrupados
+  Object.entries(pendentesMap).forEach(([casa,list])=>{
+    if(list.length>1){/* fica agrupado */}
+    else{ naoAgrupados.push(...list); delete pendentesMap[casa]; }
+  });
+
+  let html = '';
+
+  // ── Render grupos ──
+  Object.entries(pendentesMap).forEach(([casa, list])=>{
+    // Agregar itens
+    const itensMerged = {};
+    list.forEach(o=>(o.itens||[]).forEach(it=>{
+      const k=it.descricao;
+      if(!itensMerged[k]) itensMerged[k]={...it,quantidade:0};
+      itensMerged[k].quantidade+=Number(it.quantidade||1);
+    }));
+    const mergedTags = Object.values(itensMerged).map(it=>
+      `<span style="display:inline-block;background:rgba(247,37,133,.15);border:1px solid rgba(247,37,133,.3);border-radius:8px;padding:4px 10px;font-size:13px;margin:3px">
+        <span style="color:var(--pink);font-weight:900">${it.quantidade}x</span> ${it.descricao}</span>`).join('');
+    const subOrders = list.map(o=>{
+      const obsLine = o.obs?`<div class="obs-tag" style="margin-top:4px">💬 ${o.obs}</div>`:'';
+      return `<div class="group-sub-order" data-fbid="${o._fbId}">
+        <div>
+          <div class="group-sub-info">👤 <strong style="color:var(--text)">${o.responsavel}</strong> · 📅 ${fmtDate(o.data)}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:3px">${(o.itens||[]).map(it=>`${it.quantidade}x ${it.descricao}`).join(', ')}</div>
+          ${obsLine}
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-blue btn-sm" onclick="openEditOrderModal('${o._fbId}')">✏️ Editar</button>
+          <button class="btn btn-green btn-sm" onclick="updateOrderStatus('${o._fbId}','entregue')">✓ Entregue</button>
+          <button class="btn btn-red btn-sm" onclick="updateOrderStatus('${o._fbId}','cancelado')">✕ Cancelar</button>
+          <button class="btn btn-red btn-sm" onclick="openDeleteOrderModal('${o._fbId}')" style="background:rgba(100,0,0,.35)" title="Excluir (requer confirmação)">🗑️</button>
+          <button class="btn btn-orange btn-sm" onclick="repeatOrder('${o._fbId}')">🔁</button>
+        </div>
+      </div>`;
+    }).join('');
+    html += `<div class="group-card" data-fbid="${list.map(o=>o._fbId).join(',')}">
+      <div class="group-header">
+        <div>
+          <div class="group-title">👧 ${casa}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">${list.length} pedidos pendentes · ${Object.values(itensMerged).reduce((s,it)=>s+it.quantidade,0)} itens no total</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span class="badge bg-yellow">PENDENTE (${list.length})</span>
+          <button class="btn btn-green btn-sm" onclick="updateGroupStatus('${casa}','entregue')">✓ Entregar Todos</button>
+          <button class="btn btn-red btn-sm" onclick="updateGroupStatus('${casa}','cancelado')">✕ Cancelar Todos</button>
+        </div>
+      </div>
+      <div class="group-items-merged">${mergedTags}</div>
+      <div class="group-sub-orders">${subOrders}</div>
+    </div>`;
+  });
+
+  // ── Render pedidos não agrupados ──
+  naoAgrupados.forEach(o=>{
     const bc=o.status==='entregue'?'bg-green':o.status==='cancelado'?'bg-red':'bg-yellow';
+    const editBtn=`<button class="btn btn-blue btn-sm" onclick="openEditOrderModal('${o._fbId}')">✏️ Editar</button>`;
     const btns=o.status==='pendente'?`
+      ${editBtn}
       <button class="btn btn-green btn-sm" onclick="updateOrderStatus('${o._fbId}','entregue')">✓ Entregue</button>
       <button class="btn btn-red btn-sm" onclick="updateOrderStatus('${o._fbId}','cancelado')">✕ Cancelar</button>
-      <button class="btn btn-red btn-sm" onclick="deleteOrder('${o._fbId}')" style="background:rgba(100,0,0,.35)">🗑️ Excluir</button>`:
-      `<button class="btn btn-red btn-sm" onclick="deleteOrder('${o._fbId}')" style="background:rgba(100,0,0,.35)">🗑️ Excluir</button>`;
+      <button class="btn btn-red btn-sm" onclick="openDeleteOrderModal('${o._fbId}')" style="background:rgba(100,0,0,.35)" title="Excluir (requer confirmação)">🗑️ Excluir</button>`:
+      `${editBtn}<button class="btn btn-red btn-sm" onclick="openDeleteOrderModal('${o._fbId}')" style="background:rgba(100,0,0,.35)" title="Excluir (requer confirmação)">🗑️ Excluir</button>`;
     const tags=(o.itens||[]).map(it=>`<span style="display:inline-block;background:rgba(247,37,133,.15);border:1px solid rgba(247,37,133,.3);border-radius:8px;padding:4px 10px;font-size:13px;margin:3px">
       <span style="color:var(--pink);font-weight:900">${it.quantidade}x</span> ${it.descricao}</span>`).join('');
     const deliveryLine = o.dataEntrega ? `<span class="delivery-badge">🚚 Entregue em ${fmtDate(o.dataEntrega)}</span>` : '';
     const obsLine = o.obs ? `<div class="obs-tag">💬 ${o.obs}</div>` : '';
     const recurBtn = `<button class="btn btn-orange btn-sm" onclick="repeatOrder('${o._fbId}')">🔁 Repetir Pedido</button>`;
-    return `<div style="background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:12px">
+    html += `<div data-fbid="${o._fbId}" style="background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:12px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
         <div>
           <div style="font-weight:800;font-size:16px">👧 ${o.casa}</div>
@@ -1149,7 +1623,9 @@ window.renderOrders = function() {
       <div style="margin-top:12px">${tags}</div>
       ${obsLine}
     </div>`;
-  }).join('');
+  });
+
+  cont.innerHTML = html;
   renderCompTable();
 };
 
