@@ -365,7 +365,7 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
           <button class="btn btn-primary" style="margin-top:12px" onclick="addDistItem()">+ Adicionar Item</button>
         </details>
         <div class="search-row">
-          <input type="text" id="distSearch" placeholder="🔍 Buscar item..." oninput="renderDist()"/>
+          <input type="text" id="distSearch" placeholder="🔍 Buscar item..." oninput="window.renderDist()"/>
         </div>
         <div class="tbl-wrap">
           <table>
@@ -555,7 +555,7 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
   <div class="modal-box" style="max-width:500px;text-align:left">
     <div class="modal-icon">✏️</div>
     <div class="modal-title">Editar Item</div>
-    <div class="modal-sub" style="margin-bottom:16px">Altere o código e/ou a descrição do produto.</div>
+    <div class="modal-sub" style="margin-bottom:16px">Edite os dados do produto.</div>
     <input type="hidden" id="editDistFbId"/>
     <div class="modal-field">
       <label class="lbl">Código</label>
@@ -570,6 +570,20 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
       <select id="editDistUnidade">
         <option>UN</option><option>CX</option><option>PC</option><option>KG</option><option>L</option><option>METROS</option>
       </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+      <div class="modal-field">
+        <label class="lbl">Estoque Inicial</label>
+        <input type="number" id="editDistEstoque" min="0" placeholder="0"/>
+      </div>
+      <div class="modal-field">
+        <label class="lbl">Entrada</label>
+        <input type="number" id="editDistEntrada" min="0" placeholder="0"/>
+      </div>
+      <div class="modal-field">
+        <label class="lbl">Valor Unit. (R$)</label>
+        <input type="number" id="editDistValor" min="0" step="0.01" placeholder="0,00"/>
+      </div>
     </div>
     <div class="modal-btns" style="margin-top:20px">
       <button class="btn btn-primary" onclick="saveEditDist()">💾 Salvar</button>
@@ -1151,6 +1165,9 @@ window.openEditDist = function(fbId) {
   $('editDistCodigo').value = item.codigo || '';
   $('editDistDescricao').value = item.descricao || '';
   $('editDistUnidade').value = item.unidade || 'UN';
+  $('editDistEstoque').value = item.estoqueInicial || 0;
+  $('editDistEntrada').value = item.entrada || 0;
+  $('editDistValor').value = item.valorUnit || 0;
   $('editDistModal').classList.remove('hidden');
   setTimeout(()=>$('editDistCodigo').focus(), 100);
 };
@@ -1160,14 +1177,35 @@ window.saveEditDist = async function() {
   const novoCodigo = $('editDistCodigo').value.trim();
   const novaDesc = $('editDistDescricao').value.trim();
   const novaUn = $('editDistUnidade').value;
+  const novoEstoque = Number($('editDistEstoque').value) || 0;
+  const novaEntrada = Number($('editDistEntrada').value) || 0;
+  const novoValor = Number($('editDistValor').value) || 0;
   if(!novaDesc){ showToast('A descrição não pode estar vazia!'); return; }
+  const item = distItems.find(d=>d._fbId===fbId);
+  const hist = item?.priceHistory||[];
+  const currentValor = item?.valorUnit||0;
+  if(currentValor>0 && currentValor!==novoValor) hist.push({valor:currentValor, data:new Date().toISOString()});
   await updateDoc(doc(db,'distribuidora',fbId),{
     codigo: novoCodigo,
     descricao: novaDesc,
-    unidade: novaUn
+    unidade: novaUn,
+    estoqueInicial: novoEstoque,
+    entrada: novaEntrada,
+    valorUnit: novoValor,
+    priceHistory: hist
   });
   $('editDistModal').classList.add('hidden');
   showToast('Item atualizado com sucesso! ✅','linear-gradient(135deg,var(--green),var(--blue))');
+};
+
+window.confirmDeleteDist = function(fbId) {
+  const item = distItems.find(d=>d._fbId===fbId); if(!item) return;
+  const nome = item.descricao.slice(0,50);
+  if(confirm(`Deseja excluir este item?\n\n"${nome}"\n\nEsta ação é irreversível.`)) {
+    deleteDoc(doc(db,'distribuidora',fbId))
+      .then(()=>showToast('Item excluído!','linear-gradient(135deg,var(--red),#c0392b)'))
+      .catch(()=>showToast('Erro ao excluir!'));
+  }
 };
 
 window.editEstoqueInicial = function(fbId, current) {
@@ -1226,26 +1264,20 @@ window.renderDist = function() {
     const bc=atual>5?'bg-green':atual>0?'bg-yellow':'bg-red';
     const valorUnit = d.valorUnit||0;
     const valorTotal = valorUnit * Math.max(0,atual);
-    return `<tr>
-      <td>
+  return `<tr>
+      <td style="white-space:nowrap;display:flex;gap:6px">
         <button class="btn btn-blue" style="padding:4px 10px;font-size:11px;white-space:nowrap"
           onclick="openEditDist('${d._fbId}')">✏️ Editar</button>
+        <button class="btn btn-red" style="padding:4px 10px;font-size:11px;white-space:nowrap"
+          onclick="confirmDeleteDist('${d._fbId}')">🗑️ Excluir</button>
       </td>
       <td><span class="mono">${d.codigo||'-'}</span></td>
       <td>${d.descricao}</td>
       <td>${d.unidade||'UN'}</td>
-      <td>
-        ${d.estoqueInicial||0}
-        <button class="btn btn-blue" style="padding:3px 8px;font-size:11px;margin-left:6px" onclick="editEstoqueInicial('${d._fbId}',${d.estoqueInicial||0})">✏️</button>
-      </td>
-      <td>
-        ${d.entrada||0}
-        <button class="btn btn-blue" style="padding:3px 8px;font-size:11px;margin-left:6px" onclick="editEntrada('${d._fbId}',${d.entrada||0})">✏️</button>
-      </td>
+      <td>${d.estoqueInicial||0}</td>
+      <td>${d.entrada||0}</td>
       <td>
         <span style="color:var(--green);font-weight:700">${fmtR(valorUnit)}</span>
-        <button class="btn btn-blue" style="padding:3px 8px;font-size:11px;margin-left:4px" onclick="editValorUnit('${d._fbId}',${valorUnit})">✏️</button>
-        <button class="btn btn-sec" style="padding:3px 8px;font-size:11px;margin-left:2px" onclick="showPriceHistory('${d._fbId}')">📈</button>
       </td>
       <td>${pedTot}</td>
       <td><span class="badge ${bc}">${atual}</span></td>
@@ -1711,23 +1743,76 @@ function checkStockAlerts() {
 window.exportPDF = function() {
   const fc=$('filterCasa').value, fs=$('filterStatus').value;
   const filtered=orders.filter(o=>{if(fc&&o.casa!==fc)return false;if(fs&&o.status!==fs)return false;return true;});
+  if(!filtered.length){ showToast('Nenhum pedido para exportar!'); return; }
   const w=window.open('','_blank');
-  const rows=filtered.map(o=>`<tr style="border-bottom:1px solid #eee">
-    <td style="padding:8px">${fmtDate(o.data)}</td><td style="padding:8px">${o.casa}</td>
-    <td style="padding:8px">${o.responsavel}</td>
-    <td style="padding:8px">${(o.itens||[]).map(it=>it.quantidade+'x '+it.descricao).join(', ')}</td>
-    <td style="padding:8px;font-size:12px;color:#555">${o.obs||'—'}</td>
-    <td style="padding:8px">${o.dataEntrega?fmtDate(o.dataEntrega):'—'}</td>
-    <td style="padding:8px;font-weight:bold;color:${o.status==='entregue'?'#06d6a0':o.status==='cancelado'?'#ef233c':'#d4a017'}">${o.status.toUpperCase()}</td>
-  </tr>`).join('');
-  w.document.write(`<html><head><title>Relatório EBI</title>
-    <style>body{font-family:Arial,sans-serif;padding:24px}table{width:100%;border-collapse:collapse}th{background:#1a2a3e;color:#fff;padding:10px;text-align:left}</style>
-    </head><body><h1 style="color:#1a2a3e">EBI — Espaço Bíblico Infantil</h1><h2>Relatório de Pedidos</h2>
-    <p>Gerado em ${new Date().toLocaleDateString('pt-BR')} · ${filtered.length} pedido(s)</p>
-    <table><thead><tr><th>Data Pedido</th><th>Casa de Oração</th><th>Responsável</th><th>Itens</th><th>Observação</th><th>Data Entrega</th><th>Status</th></tr></thead>
-    <tbody>${rows}</tbody></table>
-    <p style="margin-top:24px;color:#aaa;font-size:12px">Desenvolvido por Leandro Machado</p></body></html>`);
-  w.document.close(); setTimeout(()=>w.print(),500);
+
+  const statusColor = s => s==='entregue'?'#06a46e':s==='cancelado'?'#c0392b':'#c47b00';
+  const statusLabel = s => s==='entregue'?'ENTREGUE':s==='cancelado'?'CANCELADO':'PENDENTE';
+
+  const pedidosHTML = filtered.map(o => {
+    const itensTr = (o.itens||[]).map((it,i)=>`
+      <tr style="background:${i%2===0?'#f9f9f9':'#fff'}">
+        <td style="padding:7px 10px;border:1px solid #ddd;font-size:13px">${it.descricao}</td>
+        <td style="padding:7px 10px;border:1px solid #ddd;font-size:13px;text-align:center;font-weight:700;color:#1a2a3e">${it.quantidade}</td>
+        <td style="padding:7px 10px;border:1px solid #ddd;font-size:12px;color:#777">${it.codigo||'—'}</td>
+      </tr>`).join('');
+    return `
+      <div style="margin-bottom:28px;page-break-inside:avoid;border:1px solid #ccc;border-radius:8px;overflow:hidden">
+        <div style="background:#1a2a3e;color:#fff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+          <div>
+            <div style="font-size:16px;font-weight:bold">${o.casa}</div>
+            <div style="font-size:12px;margin-top:3px;opacity:.85">
+              <strong>${o.responsavel}</strong> &nbsp;·&nbsp; Data do Pedido: <strong>${fmtDate(o.data)}</strong>
+              ${o.dataEntrega?` &nbsp;·&nbsp; Entrega: <strong>${fmtDate(o.dataEntrega)}</strong>`:''}
+            </div>
+            ${o.obs?`<div style="font-size:11px;margin-top:4px;opacity:.75">Obs: ${o.obs}</div>`:''}
+          </div>
+          <div style="background:${statusColor(o.status)};color:#fff;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:800;letter-spacing:.5px">${statusLabel(o.status)}</div>
+        </div>
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr style="background:#eef1f7">
+              <th style="padding:8px 10px;border:1px solid #ddd;text-align:left;font-size:12px;color:#555;text-transform:uppercase;letter-spacing:.4px">Descrição do Item</th>
+              <th style="padding:8px 10px;border:1px solid #ddd;text-align:center;font-size:12px;color:#555;text-transform:uppercase;letter-spacing:.4px;width:80px">Qtd</th>
+              <th style="padding:8px 10px;border:1px solid #ddd;text-align:left;font-size:12px;color:#555;text-transform:uppercase;letter-spacing:.4px;width:130px">Código</th>
+            </tr>
+          </thead>
+          <tbody>${itensTr}</tbody>
+        </table>
+      </div>`;
+  }).join('');
+
+  w.document.write(`<!DOCTYPE html><html><head><title>Relatório EBI</title>
+    <style>
+      *{box-sizing:border-box}
+      body{font-family:Arial,sans-serif;padding:28px 32px;color:#222;background:#fff}
+      @media print{body{padding:10px 16px}}
+    </style>
+    </head><body>
+    <div style="text-align:center;border-bottom:3px solid #1a2a3e;padding-bottom:16px;margin-bottom:24px">
+      <div style="font-size:28px;font-weight:900;color:#1a2a3e;letter-spacing:1px">EBI — Espaço Bíblico Infantil</div>
+      <div style="font-size:15px;color:#555;margin-top:4px">Sistema de Pedidos · Relatório de Pedidos</div>
+      <div style="font-size:12px;color:#999;margin-top:6px">Gerado em ${new Date().toLocaleDateString('pt-BR')} · ${filtered.length} pedido(s) listado(s)</div>
+    </div>
+    ${pedidosHTML}
+    <div style="margin-top:48px;padding-top:28px;border-top:2px solid #1a2a3e">
+      <div style="display:flex;gap:80px;align-items:flex-end;justify-content:flex-start;padding:0 16px">
+        <div style="text-align:center">
+          <div style="letter-spacing:3px;font-size:15px;margin-bottom:8px">______/______/________</div>
+          <div style="font-size:12px;color:#555">Data da entrega</div>
+        </div>
+        <div style="text-align:center;flex:1;max-width:420px">
+          <div style="border-bottom:1px solid #333;margin-bottom:8px;height:24px"></div>
+          <div style="font-size:12px;color:#555">Nome de quem recebeu</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:32px;border-top:1px solid #ddd;padding-top:12px;text-align:center;font-size:11px;color:#aaa">
+      Desenvolvido por Leandro Machado · EBI Caieiras/SP
+    </div>
+    </body></html>`);
+  w.document.close();
+  setTimeout(()=>w.print(),600);
 };
 
 // ══════════════════════════════════════════════════
