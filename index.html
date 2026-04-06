@@ -474,6 +474,11 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
         <button class="btn btn-primary" onclick="doDashLogin()">Entrar</button>
       </div>
       <div id="dashContent" class="hidden">
+        <!-- DASHBOARD HEADER -->
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+          <div style="font-family:'Fredoka One',cursive;font-size:22px;background:linear-gradient(90deg,var(--pink),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent">📊 Dashboard</div>
+          <button class="btn btn-primary btn-sm" onclick="openDashPdfModal()" style="gap:8px">📄 Exportar Relatório PDF</button>
+        </div>
         <!-- KPI CARDS -->
         <div id="dashKpiGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:28px"></div>
         <!-- CHARTS ROW 1 -->
@@ -526,6 +531,42 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
     </div>
 
   </main>
+
+  <!-- MODAL: EXPORTAR RELATÓRIO PDF DO DASHBOARD -->
+  <div id="dashPdfModal" class="modal-ov hidden">
+    <div class="modal-box" style="max-width:400px">
+      <div class="modal-icon">📄</div>
+      <div class="modal-title">Exportar Relatório de Gastos</div>
+      <div class="modal-sub">Selecione o mês e ano para gerar o relatório em PDF.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;text-align:left">
+        <div class="fg">
+          <label class="lbl">Mês</label>
+          <select id="pdfMes">
+            <option value="1">Janeiro</option>
+            <option value="2">Fevereiro</option>
+            <option value="3">Março</option>
+            <option value="4">Abril</option>
+            <option value="5">Maio</option>
+            <option value="6">Junho</option>
+            <option value="7">Julho</option>
+            <option value="8">Agosto</option>
+            <option value="9">Setembro</option>
+            <option value="10">Outubro</option>
+            <option value="11">Novembro</option>
+            <option value="12">Dezembro</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="lbl">Ano</label>
+          <input type="number" id="pdfAno" min="2020" max="2099" style="text-align:center"/>
+        </div>
+      </div>
+      <div class="modal-btns">
+        <button class="btn btn-primary" onclick="gerarRelatorioPDF()">📥 Gerar PDF</button>
+        <button class="btn btn-sec" onclick="$('dashPdfModal').classList.add('hidden')">Cancelar</button>
+      </div>
+    </div>
+  </div>
 
   <footer>
     <div>Sistema de Pedidos, Estoque e Almoxarifado — Espaço Bíblico Infantil · Caieiras/SP</div>
@@ -692,6 +733,180 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
   function closeEditDistModal() {
     document.getElementById('editDistModal').classList.add('hidden');
   }
+
+  // ── DASHBOARD PDF EXPORT ──────────────────────────
+  function openDashPdfModal(){
+    const now = new Date();
+    document.getElementById('pdfMes').value = now.getMonth()+1;
+    document.getElementById('pdfAno').value = now.getFullYear();
+    document.getElementById('dashPdfModal').classList.remove('hidden');
+  }
+
+  function gerarRelatorioPDF(){
+    const mesSel = parseInt(document.getElementById('pdfMes').value);
+    const anoSel = parseInt(document.getElementById('pdfAno').value);
+    const nomeMes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][mesSel-1];
+
+    // Pega dados globais expostos pelo módulo
+    const _orders   = window._ebiOrders   || [];
+    const _distItems= window._ebiDistItems|| [];
+
+    // Build priceMap
+    const pm = {};
+    _distItems.forEach(d=>{ if(d.valorUnit>0) pm[d.descricao]=d.valorUnit; });
+
+    // Filter orders
+    const filtered = _orders.filter(o=>{
+      if(o.status==='cancelado') return false;
+      const d = new Date(o.data);
+      return d.getMonth()+1===mesSel && d.getFullYear()===anoSel;
+    });
+
+    // Aggregate per church
+    const igValMap = {};
+    filtered.forEach(o=>{
+      if(!igValMap[o.casa]) igValMap[o.casa]=0;
+      (o.itens||[]).forEach(it=>{ igValMap[o.casa]+=(pm[it.descricao]||0)*Number(it.quantidade||1); });
+    });
+    const rows = Object.entries(igValMap).sort((a,b)=>b[1]-a[1]);
+    const totalGeral = rows.reduce((s,[,v])=>s+v,0);
+    const maiorCasa = rows.length>0?rows[0]:[null,0];
+
+    document.getElementById('dashPdfModal').classList.add('hidden');
+
+    const fmtBRL = v => v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+
+    let tabelaHTML = '';
+    if(rows.length===0){
+      tabelaHTML = '<tr><td colspan="4" style="text-align:center;color:#888;padding:24px">Nenhum dado encontrado para este período.</td></tr>';
+    } else {
+      rows.forEach(([casa,val],i)=>{
+        const pct = totalGeral>0?((val/totalGeral)*100).toFixed(1):'0.0';
+        tabelaHTML += `<tr class="${i%2===0?'even':'odd'}">
+          <td class="idx">${i+1}</td>
+          <td class="nome">${casa||'—'}</td>
+          <td class="valor">${fmtBRL(val)}</td>
+          <td class="pct">${pct}%</td>
+        </tr>`;
+      });
+    }
+
+    const cartaoMaior = maiorCasa[0] ? `
+      <div class="kpi-row">
+        <div class="kpi-card total">
+          <div class="kpi-icon">💰</div>
+          <div class="kpi-info">
+            <div class="kpi-label">TOTAL DE GASTOS</div>
+            <div class="kpi-value">${fmtBRL(totalGeral)}</div>
+            <div class="kpi-sub">${rows.length} casa(s) com pedidos</div>
+          </div>
+        </div>
+        <div class="kpi-card maior">
+          <div class="kpi-icon">🏆</div>
+          <div class="kpi-info">
+            <div class="kpi-label">MAIOR GASTO</div>
+            <div class="kpi-value">${fmtBRL(maiorCasa[1])}</div>
+            <div class="kpi-sub">${maiorCasa[0]}</div>
+          </div>
+        </div>
+      </div>` : `<div class="kpi-row"><div class="kpi-card total" style="width:100%"><div class="kpi-icon">💰</div><div class="kpi-info"><div class="kpi-label">TOTAL DE GASTOS</div><div class="kpi-value">${fmtBRL(0)}</div><div class="kpi-sub">Sem pedidos neste período</div></div></div></div>`;
+
+    const printWin = window.open('','_blank','width=900,height=700');
+    printWin.document.write(`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<title>Relatório de Gastos — ${nomeMes} ${anoSel}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Nunito',Arial,sans-serif;background:#f4f6fa;color:#1a2340;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .page{width:794px;min-height:1123px;margin:0 auto;background:#fff;display:flex;flex-direction:column;padding:0}
+  .report-header{background:linear-gradient(135deg,#7209b7,#f72585);color:#fff;padding:32px 40px 24px;position:relative;overflow:hidden}
+  .report-header::after{content:'';position:absolute;right:-60px;top:-60px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.08)}
+  .header-top{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+  .header-logo{width:54px;height:54px;background:rgba(255,255,255,.2);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0}
+  .org-name{font-size:22px;font-weight:900}
+  .org-sub{font-size:12px;opacity:.8;margin-top:2px;font-weight:600}
+  .report-title{font-size:28px;font-weight:900;letter-spacing:.5px;margin-bottom:6px}
+  .report-period{font-size:14px;opacity:.85;font-weight:700;display:flex;align-items:center;gap:8px}
+  .period-badge{background:rgba(255,255,255,.25);border-radius:20px;padding:4px 14px;font-size:13px;font-weight:800}
+  .gen-date{font-size:11px;opacity:.65;margin-top:6px}
+  .kpi-section{padding:28px 40px 20px}
+  .kpi-row{display:flex;gap:20px;flex-wrap:wrap}
+  .kpi-card{flex:1;min-width:220px;border-radius:16px;padding:20px 22px;display:flex;align-items:center;gap:16px;box-shadow:0 4px 18px rgba(0,0,0,.08)}
+  .kpi-card.total{background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border-left:5px solid #06d6a0}
+  .kpi-card.maior{background:linear-gradient(135deg,#fff8e1,#fffde7);border-left:5px solid #ffd60a}
+  .kpi-icon{font-size:36px;flex-shrink:0}
+  .kpi-label{font-size:10px;font-weight:900;color:#888;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px}
+  .kpi-value{font-size:22px;font-weight:900;color:#1a2340;line-height:1.1}
+  .kpi-sub{font-size:12px;color:#555;margin-top:3px;font-weight:700}
+  .table-section{padding:4px 40px 24px;flex:1}
+  .table-title{font-size:15px;font-weight:900;color:#7209b7;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .table-title::before{content:'';display:inline-block;width:4px;height:18px;background:linear-gradient(#7209b7,#f72585);border-radius:2px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  thead tr{background:linear-gradient(135deg,#7209b7,#f72585);color:#fff}
+  th{padding:12px 14px;text-align:left;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.5px}
+  th.idx,td.idx{text-align:center;width:44px}
+  td.valor,td.pct{text-align:right;font-weight:800}
+  td.valor{color:#06884d;font-size:14px}
+  td.pct{color:#7209b7;font-size:12px}
+  th:nth-child(3),th:nth-child(4){text-align:right}
+  tr.even td{background:#fafbff}
+  tr.odd td{background:#fff}
+  td{padding:11px 14px;border-bottom:1px solid #eef0f8;color:#2a3a5a}
+  tbody tr:last-child td{border-bottom:none}
+  tfoot tr td{background:linear-gradient(135deg,#f3e8ff,#ffe0f0)!important;font-weight:900;font-size:14px;color:#1a2340;border-top:2px solid #7209b7}
+  tfoot td.valor{color:#7209b7;font-size:15px}
+  .report-footer{background:#f8f9fc;border-top:2px solid #e8eaf6;padding:18px 40px;margin-top:auto}
+  .footer-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+  .footer-main{font-size:12px;color:#555;font-weight:700}
+  .footer-dev{font-size:11px;color:#999;margin-top:3px}
+  .footer-dev strong{color:#7209b7;font-weight:900}
+  .footer-page{font-size:11px;color:#bbb}
+  @media print{body{background:#fff}.page{width:100%;min-height:auto}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="report-header">
+    <div class="header-top">
+      <div class="header-logo">👧</div>
+      <div>
+        <div class="org-name">Espaço Bíblico Infantil</div>
+        <div class="org-sub">Sistema de Pedidos, Estoque e Almoxarifado · Caieiras/SP</div>
+      </div>
+    </div>
+    <div class="report-title">Relatório de Gastos</div>
+    <div class="report-period">
+      <span>Período de referência:</span>
+      <span class="period-badge">📅 ${nomeMes} / ${anoSel}</span>
+    </div>
+    <div class="gen-date">Gerado em: ${new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})}</div>
+  </div>
+  <div class="kpi-section">${cartaoMaior}</div>
+  <div class="table-section">
+    <div class="table-title">Gastos por Casa de Oração — ${nomeMes} ${anoSel}</div>
+    <table>
+      <thead><tr><th class="idx">#</th><th>Casa de Oração</th><th style="text-align:right">Valor Gasto</th><th style="text-align:right">% do Total</th></tr></thead>
+      <tbody>${tabelaHTML}</tbody>
+      ${rows.length>0?`<tfoot><tr><td class="idx">—</td><td><strong>TOTAL GERAL</strong></td><td class="valor">${fmtBRL(totalGeral)}</td><td class="pct">100%</td></tr></tfoot>`:''}
+    </table>
+  </div>
+  <div class="report-footer">
+    <div class="footer-row">
+      <div>
+        <div class="footer-main">Sistema de Pedidos, Estoque e Almoxarifado — Espaço Bíblico Infantil · Caieiras/SP</div>
+        <div class="footer-dev">Desenvolvido por ✨ <strong>Leandro Machado</strong> ✨</div>
+      </div>
+      <div class="footer-page">Relatório — ${nomeMes} ${anoSel}</div>
+    </div>
+  </div>
+</div>
+<script>window.onload=()=>{ window.print(); }<\/script>
+</body></html>`);
+    printWin.document.close();
+  }
 </script>
 
 <!-- FIREBASE -->
@@ -852,10 +1067,12 @@ async function initFirebase() {
   });
   onSnapshot(collection(db,'distribuidora'), snap=>{
     distItems = snap.docs.map(d=>({...d.data(),_fbId:d.id}));
+    window._ebiDistItems = distItems;
     renderDist(); refreshAllAutocompletes(); checkStockAlerts();
   });
   onSnapshot(collection(db,'pedidos'), snap=>{
     orders = snap.docs.map(d=>({...d.data(),_fbId:d.id})).sort((a,b)=>new Date(b.data)-new Date(a.data));
+    window._ebiOrders = orders;
     renderOrders(); updateStats(); checkStockAlerts(); checkNaoCadastradosAlert();
     if(!$('dashContent').classList.contains('hidden')) renderDashboard();
   });
@@ -2017,6 +2234,8 @@ initFirebase().then(()=>{
   churches=INIT_CHURCHES.map((n,i)=>({id:'c'+i,nome:n,_fbId:'c'+i}));
   products=INIT_PRODUCTS.map((p,i)=>({...p,id:'p'+i,_fbId:'p'+i}));
   distItems=INIT_DIST.map(d=>({...d,_fbId:d.id}));
+  window._ebiOrders = orders;
+  window._ebiDistItems = distItems;
   renderChurches(); renderDist(); populateChurchSelect();
   addOrderRow();
   showToast('⚠️ Operando offline');
