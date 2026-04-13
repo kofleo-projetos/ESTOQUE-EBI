@@ -329,10 +329,15 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
           </div>
         </div>
 
-        <div id="blessingMsg" class="blessing hidden" style="margin-top:20px">
+        <div id="blessingMsg" class="blessing hidden" style="margin-top:20px;position:relative">
           <div style="font-size:48px">🙌</div>
           <div class="bless-text">Deus Abençoe!</div>
           <div style="color:var(--muted);font-size:14px;margin-top:6px">Pedido registrado com sucesso!</div>
+          <div id="pedidoResumoCapture" style="display:none;text-align:left;background:linear-gradient(135deg,#1a2a3e,#0d1b2a);border:1px solid rgba(255,255,255,0.12);border-radius:16px;padding:20px;margin-top:16px;width:320px;max-width:320px;box-sizing:border-box"></div>
+          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px">
+            <button class="btn btn-primary" style="gap:8px" onclick="salvarResumoJPEG()">📷 Salvar Resumo como JPEG</button>
+            <button class="btn btn-sec" onclick="fecharBlessingMsg()">✕ Fechar</button>
+          </div>
         </div>
       </div>
     </div>
@@ -720,6 +725,9 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
 </div>
 
 <div id="toast" class="toast hidden"></div>
+
+<!-- html2canvas -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <!-- Chart.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -1348,6 +1356,51 @@ window.confirmOrder = async function(yes) {
     itens:[...itensNormais,...itensNaoCadSalvos],
     data:new Date().toISOString(),status:'pendente',obs:obs||''};
   await addDoc(collection(db,'pedidos'),order);
+
+  // Guarda dados do último pedido para captura JPEG
+  window._ultimoPedido = order;
+
+  // Preenche o div de captura
+  const capDiv = $('pedidoResumoCapture');
+  const dataPedido = new Date(order.data).toLocaleString('pt-BR');
+  const itensHtml = order.itens.map(it => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.05)">
+      <span style="background:rgba(247,37,133,0.2);color:#f72585;border-radius:5px;padding:1px 8px;font-weight:900;font-size:12px;white-space:nowrap;min-width:32px;text-align:center">${it.quantidade}x</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;color:#e9f5ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.descricao}</div>
+        ${it.codigo ? `<div style="font-size:10px;color:rgba(255,255,255,0.35);font-family:monospace">${it.codigo}</div>` : ''}
+      </div>
+      ${it.naoCadastrado ? `<span style="font-size:9px;color:#ffd60a;white-space:nowrap">⚠️ N/C</span>` : ''}
+    </div>`).join('');
+  capDiv.innerHTML = `
+    <div style="text-align:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.1)">
+      <div style="font-size:28px;margin-bottom:2px">👧</div>
+      <div style="font-family:'Fredoka One',cursive;font-size:17px;color:#f72585">EBI — Espaço Bíblico Infantil</div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.5px">Resumo do Pedido</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;font-size:12px">
+      <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:8px 10px">
+        <div style="color:rgba(255,255,255,0.4);font-size:10px;margin-bottom:2px">IGREJA</div>
+        <div style="color:#e9f5ff;font-weight:700">${order.casa}</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:8px 10px">
+        <div style="color:rgba(255,255,255,0.4);font-size:10px;margin-bottom:2px">RESPONSÁVEL</div>
+        <div style="color:#e9f5ff;font-weight:700">${order.responsavel}</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:8px 10px">
+        <div style="color:rgba(255,255,255,0.4);font-size:10px;margin-bottom:2px">DATA</div>
+        <div style="color:#e9f5ff;font-weight:700">${dataPedido}</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:8px 10px">
+        <div style="color:rgba(255,255,255,0.4);font-size:10px;margin-bottom:2px">STATUS</div>
+        <div style="color:#ffd60a;font-weight:700">⏳ Pendente</div>
+      </div>
+    </div>
+    ${order.obs ? `<div style="background:rgba(67,97,238,0.12);border-left:3px solid #4361ee;border-radius:0 6px 6px 0;padding:7px 10px;margin-bottom:12px;font-size:11px;color:#4cc9f0">📝 ${order.obs}</div>` : ''}
+    <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Itens (${order.itens.length})</div>
+    ${itensHtml}
+    <div style="text-align:center;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);font-size:10px;color:rgba(255,255,255,0.25)">Gerado em ${dataPedido}</div>`;
+  capDiv.style.display = 'block';
   $('oCasa').value=''; $('oResp').value='';
   if($('oObs')) $('oObs').value='';
   orderRows=[];
@@ -1356,11 +1409,46 @@ window.confirmOrder = async function(yes) {
   addOrderRow();
   $('autoSummary').classList.add('hidden');
   $('blessingMsg').classList.remove('hidden');
-  setTimeout(()=>$('blessingMsg').classList.add('hidden'),4000);
+  $('blessingMsg').scrollIntoView({behavior:'smooth', block:'center'});
 };
 
-// ══════════════════════════════════════════════════
-// TAB 1: DISTRIBUIDORA
+// ── SALVAR RESUMO DO PEDIDO COMO JPEG ─────────────
+window.fecharBlessingMsg = function() {
+  $('blessingMsg').classList.add('hidden');
+  $('pedidoResumoCapture').style.display = 'none';
+  window._ultimoPedido = null;
+};
+
+window.salvarResumoJPEG = async function() {
+  const capDiv = $('pedidoResumoCapture');
+  if (!capDiv || capDiv.style.display === 'none') {
+    showToast('Nenhum pedido para salvar!'); return;
+  }
+  showToast('📷 Gerando imagem...', 'linear-gradient(135deg,var(--blue),var(--cyan))');
+  try {
+    const canvas = await html2canvas(capDiv, {
+      backgroundColor: '#0d1b2a',
+      scale: 2.5,
+      useCORS: true,
+      logging: false,
+      width: 320,
+      windowWidth: 320
+    });
+    const link = document.createElement('a');
+    const pedido = window._ultimoPedido;
+    const nomeArq = pedido
+      ? `pedido_${pedido.casa.replace(/\s+/g,'_')}_${new Date(pedido.data).toLocaleDateString('pt-BR').replace(/\//g,'-')}.jpg`
+      : 'resumo_pedido.jpg';
+    link.download = nomeArq;
+    link.href = canvas.toDataURL('image/jpeg', 0.95);
+    link.click();
+    showToast('✅ Imagem salva!', 'linear-gradient(135deg,var(--green),var(--blue))');
+    setTimeout(() => fecharBlessingMsg(), 800);
+  } catch(err) {
+    console.error('Erro ao gerar JPEG:', err);
+    showToast('❌ Erro ao gerar imagem!', 'linear-gradient(135deg,var(--red),#c0392b)');
+  }
+};
 // ══════════════════════════════════════════════════
 window.addDistItem = async function() {
   const desc=$('dDesc').value.trim(); if(!desc) return;
