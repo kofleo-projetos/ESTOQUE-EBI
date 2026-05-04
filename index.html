@@ -444,6 +444,25 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
             </table>
           </div>
         </div>
+
+        <!-- BACKUP -->
+        <div class="card" style="background:linear-gradient(135deg,rgba(114,9,183,.12),rgba(67,97,238,.12));border-color:rgba(114,9,183,.35)">
+          <div class="card-title" style="font-size:18px">🗄️ Backup do Sistema</div>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6">
+            Exporte um backup completo de todos os dados do sistema (pedidos, igrejas, produtos e distribuidora) em formato JSON.<br>
+            Para restaurar, utilize o botão <strong style="color:var(--cyan)">Importar Backup</strong> e selecione o arquivo gerado anteriormente.
+          </p>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+            <button class="btn btn-primary" onclick="exportBackup()" style="background:linear-gradient(135deg,#7209b7,#4361ee);box-shadow:0 4px 18px rgba(114,9,183,.35)">
+              📥 Exportar Backup Completo
+            </button>
+            <button class="btn btn-sec" onclick="$('backupFileInput').click()" style="border-color:rgba(76,201,240,.4);color:var(--cyan)">
+              📤 Importar Backup
+            </button>
+            <input type="file" id="backupFileInput" accept=".json" class="hidden" onchange="importBackup(this)"/>
+          </div>
+          <div id="backupStatus" style="margin-top:14px;font-size:13px;display:none"></div>
+        </div>
       </div>
     </div>
 
@@ -1241,7 +1260,7 @@ window.saveItemNaoCad = async function() {
     });
   } catch(e) {}
   // Adiciona ao pedido atual para aparecer no resumo
-  itensPedidoNaoCad.push({ id: genId(), nome, quantidade: qty, valorEstimado: valor });
+  itensPedidoNaoCad.push({ id: genId(), nome, url, quantidade: qty, valorEstimado: valor });
   showToast('Item adicionado ao pedido! ✅','linear-gradient(135deg,var(--yellow),#e67e00)');
   closeItemNaoCadModal();
   updateSummary();
@@ -1312,9 +1331,11 @@ window.updateSummary = function() {
     <div class="sum-item-nao-cad">
       <div class="sum-item-info">
         <span class="sum-qty" style="background:rgba(255,214,10,.25);color:var(--yellow);border-color:rgba(255,214,10,.4)">${n.quantidade}x</span>
-        <div>
+        <div style="flex:1;min-width:0">
           <div class="sum-desc">${n.nome}</div>
           <span class="sum-nao-cad-badge">⚠️ Não cadastrado</span>
+          ${n.valorEstimado>0?`<div style="font-size:12px;color:var(--green);font-weight:700;margin-top:4px">💰 Valor estimado: R$ ${n.valorEstimado.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>`:''}
+          ${n.url?`<div style="margin-top:4px"><a href="${n.url}" target="_blank" rel="noopener" style="font-size:11px;color:var(--cyan);text-decoration:none;word-break:break-all" title="${n.url}">🔗 ${n.url.length>55?n.url.slice(0,55)+'…':n.url}</a></div>`:''}
         </div>
       </div>
       <div class="sum-actions">
@@ -1351,7 +1372,7 @@ window.confirmOrder = async function(yes) {
   const obs=($('oObs')?.value||'').trim();
   const valid=orderRows.filter(r=>r.selecionado&&r.descricao&&r.quantidade>0);
   const itensNormais = valid.map(r=>({descricao:r.descricao,codigo:r.codigo,quantidade:r.quantidade}));
-  const itensNaoCadSalvos = itensPedidoNaoCad.map(n=>({descricao:n.nome,codigo:'',quantidade:n.quantidade,naoCadastrado:true}));
+  const itensNaoCadSalvos = itensPedidoNaoCad.map(n=>({descricao:n.nome,codigo:'',quantidade:n.quantidade,naoCadastrado:true,url:n.url||'',valorEstimado:n.valorEstimado||0}));
   const order={id:genId(),casa,responsavel:resp,
     itens:[...itensNormais,...itensNaoCadSalvos],
     data:new Date().toISOString(),status:'pendente',obs:obs||''};
@@ -1941,8 +1962,17 @@ window.renderOrders = function() {
       <button class="btn btn-red btn-sm" onclick="updateOrderStatus('${o._fbId}','cancelado')">✕ Cancelar</button>
       <button class="btn btn-red btn-sm" onclick="openDeleteOrderModal('${o._fbId}')" style="background:rgba(100,0,0,.35)" title="Excluir (requer confirmação)">🗑️ Excluir</button>`:
       `${editBtn}<button class="btn btn-red btn-sm" onclick="openDeleteOrderModal('${o._fbId}')" style="background:rgba(100,0,0,.35)" title="Excluir (requer confirmação)">🗑️ Excluir</button>`;
-    const tags=(o.itens||[]).map(it=>`<span style="display:inline-block;background:rgba(247,37,133,.15);border:1px solid rgba(247,37,133,.3);border-radius:8px;padding:4px 10px;font-size:13px;margin:3px">
-      <span style="color:var(--pink);font-weight:900">${it.quantidade}x</span> ${it.descricao}</span>`).join('');
+    const tags=(o.itens||[]).map(it=>{
+      const naoCad = it.naoCadastrado;
+      const bg = naoCad ? 'rgba(255,214,10,.15)' : 'rgba(247,37,133,.15)';
+      const border = naoCad ? '1px solid rgba(255,214,10,.4)' : '1px solid rgba(247,37,133,.3)';
+      const qtyColor = naoCad ? 'var(--yellow)' : 'var(--pink)';
+      const badge = naoCad ? `<span style="display:inline-block;font-size:10px;font-weight:800;color:var(--yellow);margin-left:5px">⚠️ N/C</span>` : '';
+      const urlLine = (naoCad && it.url) ? `<div style="margin-top:3px"><a href="${it.url}" target="_blank" rel="noopener" style="font-size:10px;color:var(--cyan);text-decoration:none;word-break:break-all" title="${it.url}">🔗 ${it.url.length>55?it.url.slice(0,55)+'…':it.url}</a></div>` : '';
+      const valorLine = (naoCad && it.valorEstimado>0) ? `<div style="font-size:10px;color:var(--green);font-weight:700;margin-top:2px">💰 R$ ${Number(it.valorEstimado).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>` : '';
+      return `<span style="display:inline-block;background:${bg};border:${border};border-radius:8px;padding:4px 10px;font-size:13px;margin:3px;vertical-align:top">
+        <span style="color:${qtyColor};font-weight:900">${it.quantidade}x</span> ${it.descricao}${badge}${urlLine}${valorLine}</span>`;
+    }).join('');
     const deliveryLine = o.dataEntrega ? `<span class="delivery-badge">🚚 Entregue em ${fmtDate(o.dataEntrega)}</span>` : '';
     const obsLine = o.obs ? `<div class="obs-tag">💬 ${o.obs}</div>` : '';
     const recurBtn = `<button class="btn btn-orange btn-sm" onclick="repeatOrder('${o._fbId}')">🔁 Repetir Pedido</button>`;
@@ -2313,6 +2343,122 @@ function renderDashboard() {
     plugins:[ChartDataLabels]
   });
 }
+
+// ── BACKUP: EXPORTAR ───────────────────────────────
+window.exportBackup = async function() {
+  const btn = document.querySelector('[onclick="exportBackup()"]');
+  const status = $('backupStatus');
+  try {
+    btn.disabled = true;
+    btn.textContent = '⏳ Coletando dados...';
+    status.style.display = 'none';
+
+    const [snapChurches, snapProducts, snapDist, snapPedidos] = await Promise.all([
+      getDocs(collection(db,'churches')),
+      getDocs(collection(db,'products')),
+      getDocs(collection(db,'distribuidora')),
+      getDocs(collection(db,'pedidos'))
+    ]);
+
+    const backup = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      app: 'EBI — Espaço Bíblico Infantil',
+      collections: {
+        churches:      snapChurches.docs.map(d=>({_fbId:d.id,...d.data()})),
+        products:      snapProducts.docs.map(d=>({_fbId:d.id,...d.data()})),
+        distribuidora: snapDist.docs.map(d=>({_fbId:d.id,...d.data()})),
+        pedidos:       snapPedidos.docs.map(d=>({_fbId:d.id,...d.data()}))
+      }
+    };
+
+    const json = JSON.stringify(backup, null, 2);
+    const blob = new Blob([json], {type:'application/json'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    const ts   = new Date().toLocaleDateString('pt-BR').replace(/\//g,'-');
+    a.href = url; a.download = `ebi-backup-${ts}.json`; a.click();
+    URL.revokeObjectURL(url);
+
+    const total = backup.collections.churches.length + backup.collections.products.length
+                + backup.collections.distribuidora.length + backup.collections.pedidos.length;
+    status.innerHTML = `✅ <strong style="color:var(--green)">Backup exportado com sucesso!</strong>
+      <span style="color:var(--muted)"> — ${backup.collections.churches.length} igrejas · ${backup.collections.products.length} produtos · ${backup.collections.distribuidora.length} itens distribuidora · ${backup.collections.pedidos.length} pedidos (${total} registros no total)</span>`;
+    status.style.display = 'block';
+    showToast('✅ Backup exportado!','linear-gradient(135deg,var(--green),#048a69)');
+  } catch(e) {
+    console.error(e);
+    status.innerHTML = `❌ <strong style="color:var(--red)">Erro ao exportar:</strong> <span style="color:var(--muted)">${e.message}</span>`;
+    status.style.display = 'block';
+    showToast('❌ Erro ao exportar backup','linear-gradient(135deg,var(--red),#a01020)');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📥 Exportar Backup Completo';
+  }
+};
+
+// ── BACKUP: IMPORTAR ───────────────────────────────
+window.importBackup = async function(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  input.value = '';
+
+  const confirmed = window.confirm(
+    '⚠️ ATENÇÃO\n\nA importação irá SUBSTITUIR todos os dados atuais do sistema pelos dados do backup.\n\nEssa ação não pode ser desfeita.\n\nDeseja continuar?'
+  );
+  if (!confirmed) return;
+
+  const status = $('backupStatus');
+  const importBtn = document.querySelector('[onclick="$(\'backupFileInput\').click()"]');
+  try {
+    importBtn.disabled = true;
+    importBtn.textContent = '⏳ Importando...';
+    status.innerHTML = '⏳ <strong style="color:var(--cyan)">Lendo arquivo...</strong>';
+    status.style.display = 'block';
+
+    const text = await file.text();
+    const backup = JSON.parse(text);
+
+    if (!backup.collections) throw new Error('Arquivo de backup inválido ou corrompido.');
+
+    const colMap = {
+      churches:      backup.collections.churches      || [],
+      products:      backup.collections.products      || [],
+      distribuidora: backup.collections.distribuidora || [],
+      pedidos:       backup.collections.pedidos       || []
+    };
+
+    let total = 0;
+    for (const [colName, items] of Object.entries(colMap)) {
+      status.innerHTML = `⏳ <strong style="color:var(--cyan)">Restaurando coleção: <em>${colName}</em> (${items.length} registros)...</strong>`;
+
+      // Apaga todos os documentos existentes
+      const snap = await getDocs(collection(db, colName));
+      const deletions = snap.docs.map(d => deleteDoc(doc(db, colName, d.id)));
+      await Promise.all(deletions);
+
+      // Recria cada documento usando o _fbId original como ID
+      for (const item of items) {
+        const {_fbId, ...data} = item;
+        const docId = _fbId || genId();
+        await setDoc(doc(db, colName, docId), {...data, id: data.id || docId});
+        total++;
+      }
+    }
+
+    status.innerHTML = `✅ <strong style="color:var(--green)">Backup importado com sucesso!</strong>
+      <span style="color:var(--muted)"> — ${colMap.churches.length} igrejas · ${colMap.products.length} produtos · ${colMap.distribuidora.length} itens distribuidora · ${colMap.pedidos.length} pedidos restaurados.</span>
+      <br><small style="color:var(--muted)">Backup gerado em: ${backup.exportedAt ? new Date(backup.exportedAt).toLocaleString('pt-BR') : 'desconhecido'}</small>`;
+    showToast('✅ Backup importado!','linear-gradient(135deg,var(--green),#048a69)');
+  } catch(e) {
+    console.error(e);
+    status.innerHTML = `❌ <strong style="color:var(--red)">Erro ao importar:</strong> <span style="color:var(--muted)">${e.message}</span>`;
+    showToast('❌ Erro ao importar backup','linear-gradient(135deg,var(--red),#a01020)');
+  } finally {
+    importBtn.disabled = false;
+    importBtn.textContent = '📤 Importar Backup';
+  }
+};
 
 // ── BOOTSTRAP ──────────────────────────────────────
 initFirebase().then(()=>{
