@@ -424,6 +424,24 @@ footer{background:rgba(13,27,42,.9);border-top:1px solid var(--border);
           <div class="stats-grid" id="statsGrid"></div>
           <div class="search-row">
             <select id="filterCasa" onchange="renderOrders()"><option value="">Todas as casas</option></select>
+            <select id="filterMes" onchange="renderOrders()" style="max-width:180px">
+              <option value="">Todos os meses</option>
+              <option value="1">Janeiro</option>
+              <option value="2">Fevereiro</option>
+              <option value="3">Março</option>
+              <option value="4">Abril</option>
+              <option value="5">Maio</option>
+              <option value="6">Junho</option>
+              <option value="7">Julho</option>
+              <option value="8">Agosto</option>
+              <option value="9">Setembro</option>
+              <option value="10">Outubro</option>
+              <option value="11">Novembro</option>
+              <option value="12">Dezembro</option>
+            </select>
+            <select id="filterAno" onchange="renderOrders()" style="max-width:120px">
+              <option value="">Todos os anos</option>
+            </select>
             <select id="filterStatus" onchange="renderOrders()">
               <option value="">Todos os status</option>
               <option value="pendente">Pendente</option>
@@ -1755,6 +1773,8 @@ window.irParaPedido = function(fbId) {
       // Limpa filtros e tenta novamente
       if ($('filterCasa')) $('filterCasa').value = '';
       if ($('filterStatus')) $('filterStatus').value = '';
+      if ($('filterMes')) $('filterMes').value = '';
+      if ($('filterAno')) $('filterAno').value = '';
       if ($('orderSearch')) $('orderSearch').value = '';
       renderOrders();
       setTimeout(() => {
@@ -1879,10 +1899,25 @@ window.saveEditOrder = async function() {
 window.renderOrders = function() {
   const cont=$('ordersContainer'); if(!cont) return;
   const fc=$('filterCasa')?.value||'', fs=$('filterStatus')?.value||'', sr=($('orderSearch')?.value||'').toLowerCase();
+  const fm=parseInt($('filterMes')?.value||'')||0, fa=parseInt($('filterAno')?.value||'')||0;
+
+  // Populate year dropdown dynamically
+  const anoSel=$('filterAno');
+  if(anoSel){
+    const anos=[...new Set(orders.map(o=>{ const d=new Date(o.data); return isNaN(d)?null:d.getFullYear(); }).filter(Boolean))].sort((a,b)=>b-a);
+    const curVal=anoSel.value;
+    anoSel.innerHTML='<option value="">Todos os anos</option>'+anos.map(a=>`<option value="${a}"${String(a)===curVal?'selected':''}>${a}</option>`).join('');
+  }
+
   const filtered=orders.filter(o=>{
     if(fc&&o.casa!==fc) return false;
     if(fs&&o.status!==fs) return false;
     if(sr&&!o.casa.toLowerCase().includes(sr)&&!(o.responsavel||'').toLowerCase().includes(sr)) return false;
+    if(fm||fa){
+      const d=new Date(o.data);
+      if(fm && (d.getMonth()+1)!==fm) return false;
+      if(fa && d.getFullYear()!==fa) return false;
+    }
     return true;
   });
   if(!filtered.length){ cont.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)"><div style="font-size:48px">📭</div><div>Nenhum pedido encontrado</div></div>'; renderCompTable(); return; }
@@ -2023,9 +2058,15 @@ function renderCompTable() {
 // NOVO: Exportar resumo para WhatsApp
 window.exportWhatsApp = function() {
   const fc=$('filterCasa').value, fs=$('filterStatus').value;
+  const fm=parseInt($('filterMes')?.value||'')||0, fa=parseInt($('filterAno')?.value||'')||0;
   const filtered=orders.filter(o=>{
     if(fc&&o.casa!==fc) return false;
     if(fs&&o.status!==fs) return false;
+    if(fm||fa){
+      const d=new Date(o.data);
+      if(fm && (d.getMonth()+1)!==fm) return false;
+      if(fa && d.getFullYear()!==fa) return false;
+    }
     return true;
   });
   if(!filtered.length){ showToast('Nenhum pedido para exportar!'); return; }
